@@ -390,12 +390,7 @@ def fancy_header():
 def sidebar_config(default_requirements: str) -> Dict:
     with st.sidebar:
         st.header("⚙️ Configuration")
-        groq_api_key = st.text_input(
-            "GROQ API Key",
-            type="password",
-            help="Get your key from the Groq Console",
-            value=os.getenv("GROQ_API_KEY", ""),
-        )
+        groq_api_key = os.getenv("GROQ_API_KEY", "")
 
         st.divider()
         st.header("📝 Project Details")
@@ -509,7 +504,7 @@ def main():
     # --- Analysis flow ---
     if analyze_clicked:
         if not cfg["groq_api_key"]:
-            st.error("Please enter your GROQ API Key in the sidebar to proceed.")
+            st.error("Please set your GROQ_API_KEY environment variable to proceed.")
             st.stop()
         if not (requirements_text and requirements_text.strip()):
             st.warning("Please enter the software requirements to analyze.")
