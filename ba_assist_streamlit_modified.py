@@ -787,6 +787,10 @@ def main() -> None:
             st.warning("Please enter requirements before running analysis.")
             st.stop()
 
+        email = st.session_state.get("user_email", "")
+        if not gate_analysis(email):
+            st.stop()
+
         with tab_results:
             st.markdown("#### Live analysis stream")
             output_box = st.empty()
