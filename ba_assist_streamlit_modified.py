@@ -33,13 +33,6 @@ import streamlit as st
 from agno.agent import Agent
 from agno.models.deepseek import DeepSeek
 
-try:
-    # Current Agno import path
-    from agno.team import Team
-except Exception:  # pragma: no cover - compatibility fallback for older Agno versions
-    from agno.team.team import Team
-
-
 # =============================================================================
 # App constants
 # =============================================================================
@@ -426,29 +419,22 @@ class RequirementAnalyzer:
         )
 
     def _build_team(self) -> None:
-        self.team = Team(
-            name="Requirement Analysis Team",
+        # Single agent — DeepSeek v4-pro handles full report without repetition
+        self.team = Agent(
+            name="BA Assistant",
+            role="Senior Business Analyst and Product Owner who produces complete, structured requirement analysis reports",
             model=make_model(self.model_id),
-            members=[
-                self.ba_agent,
-                self.product_agent,
-                self.architect_agent,
-                self.diagram_agent,
-                self.risk_qa_agent,
-            ],
             instructions=[
-                "Coordinate the members to produce one consolidated BA/Product Owner report.",
-                "Pass the full original requirements text to every member that needs it.",
-                "Do not output internal delegation chatter; output only the final consolidated report.",
-                "Use the requested report structure and keep IDs consistent.",
-                "Ensure every major requirement is traceable to features, stories, risks, and tests.",
-                "If the requirements are weak, explicitly list open questions instead of making unsupported assumptions.",
+                "You are a senior BA/PO. Produce ONE complete, well-structured report from the requirements.",
+                "Follow the exact report structure requested. Do not repeat sections.",
+                "Parse raw requirements into business goals, features, epics, user stories, NFRs, architecture, risks, and diagrams.",
+                "Use MoSCoW prioritization, INVEST principles, Given-When-Then acceptance criteria.",
+                "Include at least one valid Mermaid diagram that reflects the actual requirements.",
+                "Do not invent facts — list missing details as assumptions or open questions.",
+                "Keep IDs consistent across the entire report.",
+                "Output only the final report. No meta-commentary.",
             ],
             markdown=True,
-            show_members_responses=self.show_member_responses,
-            retries=1,
-            delay_between_retries=1,
-            exponential_backoff=True,
         )
 
     def run_analysis(self, requirements_text: str, config: AppConfig) -> Iterable[Any]:
