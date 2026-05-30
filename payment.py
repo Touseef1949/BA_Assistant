@@ -27,40 +27,46 @@ PLANS = {
 # =============================================================================
 
 @st.cache_resource
-def get_supabase() -> Client:
-    """Cached Supabase client."""
+def get_supabase():
+    """Cached Supabase client. Returns None if not configured."""
     url = st.secrets.get("SUPABASE_URL", os.getenv("SUPABASE_URL", ""))
     key = st.secrets.get("SUPABASE_KEY", os.getenv("SUPABASE_KEY", ""))
     if not url or not key:
-        st.error("Supabase not configured. Add SUPABASE_URL and SUPABASE_KEY to secrets.")
-        st.stop()
+        return None
     return create_client(url, key)
 
 
+def _supabase_ready() -> bool:
+    return get_supabase() is not None
+
+
 def get_user(email: str) -> Optional[dict]:
-    """Get user record from Supabase."""
     supabase = get_supabase()
+    if not supabase:
+        return {"email": email, "plan": "free", "analyses_used": 0, "analyses_limit": FREE_TIER_LIMIT}
     result = supabase.table("users").select("*").eq("email", email).execute()
     return result.data[0] if result.data else None
 
 
 def create_user(email: str) -> dict:
-    """Create new user with free tier."""
     supabase = get_supabase()
     user = {
         "email": email,
         "plan": "free",
         "analyses_used": 0,
         "analyses_limit": FREE_TIER_LIMIT,
-        "created_at": "now()",
     }
+    if not supabase:
+        return user
+    user["created_at"] = "now()"
     result = supabase.table("users").insert(user).execute()
     return result.data[0] if result.data else user
 
 
 def increment_usage(email: str) -> dict:
-    """Increment analysis count for user."""
     supabase = get_supabase()
+    if not supabase:
+        return {"email": email, "analyses_used": 0}
     user = get_user(email)
     if not user:
         user = create_user(email)
@@ -71,17 +77,19 @@ def increment_usage(email: str) -> dict:
 
 
 def user_can_analyze(email: str) -> bool:
-    """Check if user has remaining analyses."""
+    if not _supabase_ready():
+        return True  # no paywall without Supabase
     user = get_user(email)
     if not user:
-        return True  # new user
+        return True
     return user["plan"] != "free" or user["analyses_used"] < user["analyses_limit"]
 
 
 def activate_pro(email: str, plan: str) -> None:
-    """Activate Pro/Team plan for user."""
     supabase = get_supabase()
-    limit = FREE_TIER_LIMIT if plan == "free" else 999999
+    if not supabase:
+        return
+    limit = 999999
     supabase.table("users").update({
         "plan": plan,
         "analyses_limit": limit,
