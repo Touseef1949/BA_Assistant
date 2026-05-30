@@ -55,7 +55,7 @@ and provide an admin dashboard for inventory management.
 We expect high traffic and need the system to be scalable and secure."""
 
 MODEL_OPTIONS = [
-    "deepseek-v4-flash",
+    "deepseek-v4-pro",
 ]
 
 ANALYSIS_TYPES = [
