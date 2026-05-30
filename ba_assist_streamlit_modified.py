@@ -32,6 +32,7 @@ import dotenv
 import streamlit as st
 from agno.agent import Agent
 from agno.models.deepseek import DeepSeek
+from payment import render_pricing, gate_analysis, get_user, create_user
 
 # =============================================================================
 # App constants
@@ -587,6 +588,17 @@ def render_header() -> None:
 def render_sidebar() -> AppConfig:
     with st.sidebar:
         st.header("⚙️ Configuration")
+
+        # Email for usage tracking
+        email = st.text_input("Your Email", placeholder="you@example.com", 
+                               value=st.session_state.get("user_email", ""),
+                               help="Used to track your usage and plan")
+        if email:
+            st.session_state["user_email"] = email
+            user = get_user(email)
+            if not user:
+                create_user(email)
+            render_pricing(email)
 
         api_key = safe_secret("DEEPSEEK_API_KEY")
         if api_key:
