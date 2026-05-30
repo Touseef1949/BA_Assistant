@@ -2,20 +2,20 @@
 Improved Advanced Requirement Analysis System
 --------------------------------------------
 A production-oriented Streamlit app that turns raw requirements into BA/PO deliverables
-using an Agno multi-agent team powered by Groq models.
+using an Agno multi-agent team powered by DeepSeek v4-pro.
 
 Install:
-    pip install streamlit python-dotenv agno groq
+    pip install streamlit python-dotenv agno openai
 
 Run:
     streamlit run improved_requirement_analysis_app.py
 
 Secrets:
     Preferred: .streamlit/secrets.toml
-        GROQ_API_KEY = "your_key_here"
+        DEEPSEEK_API_KEY = "your_key_here"
 
     Fallback:
-        export GROQ_API_KEY="your_key_here"
+        export DEEPSEEK_API_KEY="your_key_here"
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from typing import Any, Dict, Iterable, List, Optional
 import dotenv
 import streamlit as st
 from agno.agent import Agent
-from agno.models.groq import Groq
+from agno.models.deepseek import DeepSeek
 
 try:
     # Current Agno import path
@@ -55,10 +55,7 @@ and provide an admin dashboard for inventory management.
 We expect high traffic and need the system to be scalable and secure."""
 
 MODEL_OPTIONS = [
-    "openai/gpt-oss-120b",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-versatile",
-    "mixtral-8x7b-32768",
+    "deepseek-v4-pro",
 ]
 
 ANALYSIS_TYPES = [
@@ -264,10 +261,10 @@ def safe_secret(name: str, default: str = "") -> str:
     return value or os.getenv(name, default).strip()
 
 
-def configure_groq_key() -> Optional[str]:
-    api_key = safe_secret("GROQ_API_KEY")
+def configure_deepseek_key() -> Optional[str]:
+    api_key = safe_secret("DEEPSEEK_API_KEY")
     if api_key:
-        os.environ["GROQ_API_KEY"] = api_key
+        os.environ["DEEPSEEK_API_KEY"] = api_key
     return api_key or None
 
 
@@ -280,8 +277,8 @@ def safe_slug(value: str, fallback: str = "requirements_analysis") -> str:
 # Prompt and model helpers
 # =============================================================================
 
-def make_model(model_id: str) -> Groq:
-    return Groq(id=model_id)
+def make_model(model_id: str) -> DeepSeek:
+    return DeepSeek(id=model_id)
 
 
 def build_analysis_prompt(requirements_text: str, config: AppConfig) -> str:
@@ -591,7 +588,7 @@ def render_header() -> None:
                 </p>
                 <div class="badge"><span class="dot"></span> Streaming analysis</div>
                 <div class="badge">Agno multi-agent team</div>
-                <div class="badge">Groq models</div>
+                <div class="badge">DeepSeek v4-pro</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -605,17 +602,17 @@ def render_sidebar() -> AppConfig:
     with st.sidebar:
         st.header("⚙️ Configuration")
 
-        api_key = safe_secret("GROQ_API_KEY")
+        api_key = safe_secret("DEEPSEEK_API_KEY")
         if api_key:
-            st.success("GROQ_API_KEY detected")
+            st.success("DEEPSEEK_API_KEY detected")
         else:
-            st.warning("GROQ_API_KEY not detected")
+            st.warning("DEEPSEEK_API_KEY not detected")
             st.caption("Set it in .streamlit/secrets.toml or as an environment variable.")
 
         st.divider()
         project_name = st.text_input("Project Name", value="E-commerce Platform")
         analysis_type = st.selectbox("Analysis Type", ANALYSIS_TYPES, index=0)
-        model_id = st.selectbox("Groq Model", MODEL_OPTIONS, index=0)
+        model_id = st.selectbox("Model", MODEL_OPTIONS, index=0)
 
         st.divider()
         with st.expander("Advanced options", expanded=False):
@@ -776,7 +773,7 @@ def main() -> None:
         ["📄 Results", "📈 Diagrams", "🕘 History", "🧾 Prompt Preview"]
     )
 
-    api_key = configure_groq_key()
+    api_key = configure_deepseek_key()
 
     with tab_prompt:
         if config.show_prompt_preview:
@@ -786,7 +783,7 @@ def main() -> None:
 
     if analyze_clicked:
         if not api_key:
-            st.error("GROQ_API_KEY is missing. Add it to .streamlit/secrets.toml or your environment variables.")
+            st.error("DEEPSEEK_API_KEY is missing. Add it to .streamlit/secrets.toml or your environment variables.")
             st.stop()
         if not requirements_text.strip():
             st.warning("Please enter requirements before running analysis.")
@@ -828,7 +825,7 @@ def main() -> None:
                 render_downloads(config.project_name, result)
 
             except Exception as exc:
-                st.error("Analysis failed. Check your API key, model name, network connection, and Agno/Groq package versions.")
+                st.error("Analysis failed. Check your API key, model name, network connection, and Agno/DeepSeek package versions.")
                 with st.expander("Technical error details"):
                     st.exception(exc)
 
@@ -853,7 +850,7 @@ def main() -> None:
 
         if diagram_clicked:
             if not api_key:
-                st.error("GROQ_API_KEY is missing. Add it to .streamlit/secrets.toml or your environment variables.")
+                st.error("DEEPSEEK_API_KEY is missing. Add it to .streamlit/secrets.toml or your environment variables.")
                 st.stop()
             if not requirements_text.strip():
                 st.warning("Please enter requirements before generating a diagram.")
