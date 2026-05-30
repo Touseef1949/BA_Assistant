@@ -225,10 +225,9 @@ def render_pricing(email: str):
 
 
 def gate_analysis(email: str) -> bool:
-    """Returns True if user can run analysis, False if paywall needed."""
+    """Returns True if user can run analysis. No email = free pass."""
     if not email or "@" not in email:
-        st.warning("Enter your email to track usage.")
-        return False
+        return True  # no tracking = free unlimited
 
     if user_can_analyze(email):
         increment_usage(email)
