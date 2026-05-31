@@ -520,24 +520,31 @@ def extract_pdf_text(uploaded_file: Any) -> str:
 
 
 def sanitize_pdf_text(text: str) -> str:
-    replacements = {
-        "—": "-",
-        "–": "-",
-        "“": '"',
-        "”": '"',
-        "‘": "'",
-        "’": "'",
-        "₹": "INR ",
-        "•": "-",
-        "✅": "[OK]",
-        "🚀": "",
-        "📄": "",
-        "📈": "",
-        "🕘": "",
-    }
-    for old, new in replacements.items():
-        text = text.replace(old, new)
-    return text.encode("latin-1", "replace").decode("latin-1")
+    # Strip all non-latin-1 characters (handle emojis, special Unicode, etc.)
+    text = text.encode("latin-1", "replace").decode("latin-1")
+    # Break very long unbroken strings (URLs, code, etc.) that fpdf can't wrap
+    MAX_CHUNK = 120
+    words = text.split(" ")
+    result = []
+    for w in words:
+        while len(w) > MAX_CHUNK:
+            result.append(w[:MAX_CHUNK])
+            w = w[MAX_CHUNK:]
+        result.append(w)
+    return " ".join(result)
+
+
+def _safe_write_line(pdf: FPDF, text: str, h: int = 5) -> None:
+    """Write a line to PDF, falling back to truncated version if it won't fit."""
+    try:
+        pdf.multi_cell(0, h, text)
+    except Exception:
+        # fpdf2 can't render this line — write a truncated safe version
+        try:
+            safe = text[:120].encode("ascii", "replace").decode("ascii") + "..."
+            pdf.multi_cell(0, h, safe)
+        except Exception:
+            pdf.cell(0, h, "[line skipped — unsupported characters]")
 
 
 def markdown_to_pdf_lines(markdown: str) -> List[str]:
@@ -583,10 +590,10 @@ def generate_pdf(project_name: str, result_markdown: str) -> bytes:
             continue
         if len(clean) < 90 and re.match(r"^\d{1,2}\.\s+|^[A-Z][A-Za-z /&,-]+$", clean.strip()):
             pdf.set_font("Helvetica", "B", 11)
-            pdf.multi_cell(0, 6, clean)
+            _safe_write_line(pdf, clean, h=6)
             pdf.set_font("Helvetica", size=10)
         else:
-            pdf.multi_cell(0, 5, clean)
+            _safe_write_line(pdf, clean, h=5)
 
     pdf.ln(8)
     pdf.set_font("Helvetica", "I", 8)
@@ -1143,14 +1150,20 @@ def render_downloads(config: AppConfig, result: str) -> None:
             use_container_width=True,
         )
     with col3:
-        pdf_bytes = generate_pdf(config.project_name, result)
-        st.download_button(
-            "📄 Export as PDF",
-            data=pdf_bytes,
-            file_name=f"{filename_base}.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-        )
+        try:
+            pdf_bytes = generate_pdf(config.project_name, result)
+        except Exception:
+            pdf_bytes = b""
+        if pdf_bytes:
+            st.download_button(
+                "\U0001f4c4 Export as PDF",
+                data=pdf_bytes,
+                file_name=f"{filename_base}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
+        else:
+            st.caption("PDF unavailable — download Markdown instead")
 
 
 def render_interactive_flow(config: AppConfig, email: str, requirements_text: str) -> None:
