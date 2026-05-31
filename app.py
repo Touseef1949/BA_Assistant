@@ -134,6 +134,16 @@ ANALYSIS_TYPES = [
     "Gap & Clarification",
 ]
 
+ANALYSIS_TYPE_INFO = {
+    "Comprehensive": "⚡ Fast (~30-90s) — Single agent, full 14-section report with Mermaid diagrams. Best for most use cases.",
+    "Interactive (Q&A)": "💬 Step-by-step — Generates clarifying questions, you answer, then runs full analysis with enriched context.",
+    "Enterprise": "🏢 Thorough (~3-5 min) — Full 5-agent Agno Team coordinates specialists. Use for complex, compliance-heavy projects.",
+    "Quick Feature Extraction": "🎯 Fast — Feature list, MoSCoW priority, dependencies, MVP grouping only.",
+    "User Stories Generation": "📋 INVEST stories with acceptance criteria and story points.",
+    "Technical Architecture": "🏗️ System design, components, APIs, integrations, NFRs, deployment approach.",
+    "Gap & Clarification": "🔍 Ambiguity detection, missing requirements, open questions, discovery plan.",
+}
+
 MERMAID_START_TOKENS = (
     "flowchart",
     "graph",
@@ -716,6 +726,28 @@ class RequirementAnalyzer:
             ],
         )
 
+        # Fast single-agent for Comprehensive mode (avoids Streamlit Cloud timeout)
+        if Agent is None:
+            raise RuntimeError(f"Agno Agent unavailable: {AGNO_IMPORT_ERROR}")
+        self.comprehensive_agent = Agent(
+            name="BA Assistant",
+            role="Senior BA/PO producing complete, structured requirement analysis reports end-to-end in a single pass.",
+            model=make_coordinator_model(),
+            instructions=[
+                PROMPT_INJECTION_GUARD,
+                "You are a senior BA/PO for Indian fintech. Produce ONE complete, well-structured analysis report.",
+                "Follow the full report structure provided in the prompt. Cover all sections: exec summary, stakeholders, scope, assumptions, functional & non-functional requirements, user stories with acceptance criteria, process flows, data & API requirements, architecture, compliance & risks, MVP roadmap, and final recommendation.",
+                "Include at least one valid Mermaid diagram (fenced code block) that reflects the actual requirements.",
+                "Use MoSCoW prioritization, INVEST principles, and Given-When-Then acceptance criteria.",
+                "For Indian fintech, explicitly address RBI, NPCI, SEBI, PMLA, KYC, data localization, audit, reconciliation, and fraud controls where relevant.",
+                "Do not invent facts — list missing details as assumptions or open questions.",
+                "Keep IDs consistent across the entire report.",
+                "Output only the final polished Markdown report. No meta-commentary, no internal notes.",
+            ],
+            markdown=True,
+            retries=0,
+        )
+
         if self.enable_vision:
             if Agent is None:
                 raise RuntimeError(f"Agno Agent unavailable: {AGNO_IMPORT_ERROR}")
@@ -751,9 +783,7 @@ class RequirementAnalyzer:
                 REPORT_STRUCTURE,
             ],
             "markdown": True,
-            "retries": 1,
-            "delay_between_retries": 1,
-            "exponential_backoff": True,
+            "retries": 0,
         }
         if supports_parameter(Team, "show_members_responses"):
             team_kwargs["show_members_responses"] = self.show_member_responses
@@ -793,6 +823,10 @@ Output requirements:
 
     def run_analysis(self, requirements_text: str, project_name: str, analysis_type: str, stream: bool = False) -> Any:
         prompt = self.compose_prompt(requirements_text, project_name, analysis_type)
+        # Comprehensive: single fast agent (30-90s, avoids Streamlit Cloud timeout)
+        # Enterprise: full 5-agent Team (3-5 min, for thorough analysis)
+        if analysis_type == "Comprehensive":
+            return self.comprehensive_agent.run(prompt, stream=stream)
         kwargs: Dict[str, Any] = {"stream": stream}
         if supports_parameter(self.team.run, "show_member_responses"):
             kwargs["show_member_responses"] = self.show_member_responses
@@ -955,6 +989,7 @@ def sidebar_config() -> Tuple[AppConfig, str, Dict[str, Any]]:
         st.markdown("### ⚙️ Config")
         project_name = st.text_input("Project Name", value="Indian Fintech Product", key="project_name")
         analysis_type = st.selectbox("Analysis Type", ANALYSIS_TYPES, index=0, key="analysis_type")
+        st.caption(ANALYSIS_TYPE_INFO.get(analysis_type, ""))
         model_id = st.selectbox(
             "Worker Model",
             ["deepseek-v4-flash"],

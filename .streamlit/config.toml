@@ -1,0 +1,10 @@
+[server]
+# Increase timeouts for long-running AI analysis
+maxUploadSize = 50
+
+[runner]
+# Faster reruns for multi-step workflows
+fastReruns = true
+
+[browser]
+gatherUsageStats = false
