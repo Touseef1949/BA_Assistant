@@ -678,16 +678,19 @@ class RequirementAnalyzer:
     def _agent(self, name: str, role: str, instructions: List[str]) -> Any:
         if Agent is None:
             raise RuntimeError(f"Agno Agent unavailable: {AGNO_IMPORT_ERROR}")
-        return Agent(
-            name=name,
-            role=role,
-            model=make_worker_model(),
-            instructions=[PROMPT_INJECTION_GUARD, *instructions],
-            markdown=True,
-            retries=1,
-            delay_between_retries=1,
-            exponential_backoff=True,
-        )
+        kwargs: Dict[str, Any] = {
+            "name": name,
+            "role": role,
+            "model": make_worker_model(),
+            "instructions": [PROMPT_INJECTION_GUARD, *instructions],
+            "markdown": True,
+        }
+        # retries param only exists in newer Agno versions
+        if supports_parameter(Agent, "retries"):
+            kwargs["retries"] = 1
+            kwargs["delay_between_retries"] = 1
+            kwargs["exponential_backoff"] = True
+        return Agent(**kwargs)
 
     def _build_agents(self) -> None:
         self.ba_agent = self._agent(
@@ -755,7 +758,6 @@ class RequirementAnalyzer:
                 "Output only the final polished Markdown report. No meta-commentary, no internal notes.",
             ],
             markdown=True,
-            retries=0,
         )
 
         if self.enable_vision:
@@ -771,9 +773,6 @@ class RequirementAnalyzer:
                     "Do not invent content that is not visible. Mark uncertain text as [unclear].",
                 ],
                 markdown=True,
-                retries=1,
-                delay_between_retries=1,
-                exponential_backoff=True,
             )
 
     def _build_team(self) -> None:
@@ -793,8 +792,9 @@ class RequirementAnalyzer:
                 REPORT_STRUCTURE,
             ],
             "markdown": True,
-            "retries": 0,
         }
+        if supports_parameter(Team, "retries"):
+            team_kwargs["retries"] = 0
         if supports_parameter(Team, "show_members_responses"):
             team_kwargs["show_members_responses"] = self.show_member_responses
         elif supports_parameter(Team, "show_member_responses"):
