@@ -610,6 +610,38 @@ def generate_pdf(project_name: str, result_markdown: str) -> bytes:
     return raw.encode("latin-1", "replace")
 
 
+def sanitize_mermaid_code(code: str) -> str:
+    """Fix common LLM-generated Mermaid syntax errors."""
+    lines = []
+    for line in code.strip().splitlines():
+        stripped = line.strip()
+        # Skip empty lines
+        if not stripped:
+            lines.append("")
+            continue
+        # Fix unquoted node labels with special characters
+        # Pattern: [text with special chars] or (text) or {text} or >text]
+        stripped = re.sub(
+            r'\[([^\]"]*?[()\'"<>&#;{}|?*+\[\]\/\\][^\]"]*?)\]',
+            lambda m: f'["{m.group(1).replace(chr(34), chr(39))}"]',
+            stripped
+        )
+        # Fix pipe text with special chars: -->|text| should quote text
+        stripped = re.sub(
+            r'-->\|([^|]*?[()\'"<>&#;{}?*+\[\]\/\\][^|]*?)\|',
+            lambda m: f'-->|"{m.group(1)}"|',
+            stripped
+        )
+        # Fix arrow labels with special chars
+        stripped = re.sub(
+            r'-->\s*"([^"]*?)"',
+            lambda m: f'--> "{m.group(1).replace(chr(39), "")}"',
+            stripped
+        )
+        lines.append(stripped)
+    return "\n".join(lines)
+
+
 def extract_mermaid_code(text: str) -> str:
     fenced = re.search(r"```mermaid\s*(.*?)```", text, flags=re.DOTALL | re.IGNORECASE)
     candidate = fenced.group(1).strip() if fenced else ""
@@ -621,6 +653,8 @@ def extract_mermaid_code(text: str) -> str:
             if found:
                 candidate = found.group(1).strip()
                 break
+
+    candidate = sanitize_mermaid_code(candidate)
 
     if is_valid_mermaid(candidate):
         return candidate
@@ -648,12 +682,34 @@ def render_mermaid(mermaid_code: str, theme: str = "neutral", height: int = 560)
     safe_code = html.escape(mermaid_code)
     components.html(
         f"""
-        <div style="width:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:16px; padding:16px; background:#fff;">
-            <div class="mermaid">{safe_code}</div>
+        <div style="width:100%; overflow:auto; border:1px solid #e2e8f0; border-radius:16px; padding:16px; background:#fff;" id="mermaid-container">
+            <pre class="mermaid" style="display:none;">{safe_code}</pre>
+            <div id="mermaid-error" style="display:none; color:#dc2626; padding:12px; background:#fef2f2; border-radius:8px; font-size:0.9rem;">
+                ⚠️ Diagram rendering failed. The Mermaid code may have syntax errors. 
+                <details><summary>Show code</summary><pre style="white-space:pre-wrap;font-size:0.8rem;">{safe_code}</pre></details>
+            </div>
         </div>
         <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
         <script>
-            mermaid.initialize({{startOnLoad:true, theme:"{safe_theme}", securityLevel:"strict"}});
+            (function() {{
+                var container = document.getElementById('mermaid-container');
+                var pre = container.querySelector('.mermaid');
+                var errorDiv = document.getElementById('mermaid-error');
+                var code = pre.textContent;
+                pre.style.display = 'block';
+                try {{
+                    mermaid.parse(code);
+                    mermaid.initialize({{
+                        startOnLoad: true,
+                        theme: "{safe_theme}",
+                        securityLevel: "loose",
+                    }});
+                }} catch(e) {{
+                    pre.style.display = 'none';
+                    errorDiv.style.display = 'block';
+                    errorDiv.innerHTML += '<br><small>' + e.message.replace(/</g, '&lt;') + '</small>';
+                }}
+            }})();
         </script>
         """,
         height=height,
