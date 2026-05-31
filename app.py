@@ -378,6 +378,7 @@ def make_worker_model() -> Any:
         id="deepseek-v4-flash",
         api_key=safe_secret("DEEPSEEK_API_KEY"),
         base_url=DEEPSEEK_BASE_URL,
+        role_map={"system": "system", "user": "user", "assistant": "assistant", "tool": "tool"},
     )
 
 
@@ -388,6 +389,7 @@ def make_coordinator_model() -> Any:
         id="deepseek-v4-pro",
         api_key=safe_secret("DEEPSEEK_API_KEY"),
         base_url=DEEPSEEK_BASE_URL,
+        role_map={"system": "system", "user": "user", "assistant": "assistant", "tool": "tool"},
     )
 
 
@@ -401,6 +403,7 @@ def make_vision_model() -> Any:
         id="gemini-3.5-flash",
         api_key=google_key,
         base_url=GOOGLE_OPENAI_BASE_URL,
+        role_map={"system": "system", "user": "user", "assistant": "assistant", "tool": "tool"},
     )
 
 
