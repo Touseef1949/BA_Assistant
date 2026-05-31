@@ -906,5 +906,9 @@ def main() -> None:
                     st.markdown(item["result"])
 
 
+
+---
+<p style="text-align:center; color:#888; font-size:0.85rem;">🔍 Built by <a href="https://touseefshaik.com" target="_blank">Touseef Shaik</a></p>
+
 if __name__ == "__main__":
     main()
