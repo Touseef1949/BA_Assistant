@@ -544,7 +544,10 @@ def _safe_write_line(pdf: FPDF, text: str, h: int = 5) -> None:
             safe = text[:120].encode("ascii", "replace").decode("ascii") + "..."
             pdf.multi_cell(0, h, safe)
         except Exception:
-            pdf.cell(0, h, "[line skipped — unsupported characters]")
+            try:
+                pdf.cell(0, h, "[line skipped]")
+            except Exception:
+                pass  # ultimate fallback — skip the line entirely
 
 
 def markdown_to_pdf_lines(markdown: str) -> List[str]:
