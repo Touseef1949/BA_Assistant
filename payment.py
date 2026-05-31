@@ -1,238 +1,382 @@
-"""Payment layer for BA Assistant — Supabase + Razorpay integration."""
+"""Payment and usage gate for BA Assistant v2.
 
+This module keeps Supabase + Razorpay concerns out of app.py. It is intentionally
+fault-tolerant: if Supabase/Razorpay are not configured, the app can still run in
+local/session mode for development.
+"""
+
+from __future__ import annotations
+
+import base64
 import hashlib
 import hmac
 import json
 import os
-import time
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Tuple
 
 import requests
 import streamlit as st
-from supabase import create_client, Client
+import streamlit.components.v1 as components
 
-# =============================================================================
-# Config
-# =============================================================================
+try:
+    from supabase import Client, create_client
+except Exception:  # pragma: no cover - dependency installed in production
+    Client = None  # type: ignore[assignment]
+    create_client = None  # type: ignore[assignment]
 
-FREE_TIER_LIMIT = 3
-PLANS = {
-    "free": {"name": "Free", "analyses": 3, "price": 0},
-    "pro": {"name": "Pro", "analyses": -1, "price": 49900},     # paise
-    "team": {"name": "Team", "analyses": -1, "price": 199900},   # paise
-}
 
-# =============================================================================
-# Supabase
-# =============================================================================
+FREE_USAGE_LIMIT = 2
+PAID_USAGE_LIMIT = 10_000
+USERS_TABLE = "users"
 
-@st.cache_resource
-def get_supabase():
-    """Cached Supabase client. Returns None if not configured."""
-    url = st.secrets.get("SUPABASE_URL", os.getenv("SUPABASE_URL", ""))
-    key = st.secrets.get("SUPABASE_KEY", os.getenv("SUPABASE_KEY", ""))
-    if not url or not key:
+
+# -----------------------------------------------------------------------------
+# Configuration helpers
+# -----------------------------------------------------------------------------
+
+
+def _safe_secret(name: str, default: str = "") -> str:
+    try:
+        raw = st.secrets.get(name, default)
+        value = str(raw).strip() if raw is not None else default
+    except Exception:
+        value = default
+    return value or os.getenv(name, default).strip()
+
+
+@st.cache_resource(show_spinner=False)
+def _supabase() -> Optional[Any]:
+    url = _safe_secret("SUPABASE_URL")
+    key = _safe_secret("SUPABASE_KEY")
+    if not url or not key or create_client is None:
         return None
-    return create_client(url, key)
+    try:
+        return create_client(url, key)
+    except Exception:
+        return None
 
 
-def _supabase_ready() -> bool:
-    return get_supabase() is not None
+def _razorpay_auth_header() -> Dict[str, str]:
+    key_id = _safe_secret("RAZORPAY_KEY_ID")
+    key_secret = _safe_secret("RAZORPAY_KEY_SECRET")
+    token = base64.b64encode(f"{key_id}:{key_secret}".encode("utf-8")).decode("ascii")
+    return {"Authorization": f"Basic {token}", "Content-Type": "application/json"}
 
 
-def get_user(email: str) -> Optional[dict]:
-    supabase = get_supabase()
-    if not supabase:
-        return {"email": email, "plan": "free", "analyses_used": 0, "analyses_limit": FREE_TIER_LIMIT}
-    result = supabase.table("users").select("*").eq("email", email).execute()
-    return result.data[0] if result.data else None
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
-def create_user(email: str) -> dict:
-    supabase = get_supabase()
-    user = {
-        "email": email,
+def _local_users() -> Dict[str, Dict[str, Any]]:
+    if "_ba_local_users" not in st.session_state:
+        st.session_state["_ba_local_users"] = {}
+    return st.session_state["_ba_local_users"]
+
+
+def _default_user(email: str) -> Dict[str, Any]:
+    return {
+        "email": email.strip().lower(),
         "plan": "free",
-        "analyses_used": 0,
-        "analyses_limit": FREE_TIER_LIMIT,
+        "status": "active",
+        "usage_count": 0,
+        "usage_limit": FREE_USAGE_LIMIT,
+        "created_at": _now_iso(),
+        "updated_at": _now_iso(),
     }
-    if not supabase:
-        return user
-    user["created_at"] = "now()"
-    result = supabase.table("users").insert(user).execute()
-    return result.data[0] if result.data else user
 
 
-def increment_usage(email: str) -> dict:
-    supabase = get_supabase()
-    if not supabase:
-        return {"email": email, "analyses_used": 0}
-    user = get_user(email)
-    if not user:
-        user = create_user(email)
-    new_count = user["analyses_used"] + 1
-    supabase.table("users").update({"analyses_used": new_count}).eq("email", email).execute()
-    user["analyses_used"] = new_count
+def _normalize_user(user: Optional[Dict[str, Any]], email: str) -> Dict[str, Any]:
+    normalized = _default_user(email)
+    if user:
+        normalized.update({k: v for k, v in user.items() if v is not None})
+    normalized["email"] = str(normalized.get("email") or email).strip().lower()
+    normalized["plan"] = str(normalized.get("plan") or "free").lower()
+    normalized["status"] = str(normalized.get("status") or "active").lower()
+    normalized["usage_count"] = int(normalized.get("usage_count") or 0)
+    normalized["usage_limit"] = int(normalized.get("usage_limit") or (PAID_USAGE_LIMIT if normalized["plan"] != "free" else FREE_USAGE_LIMIT))
+    return normalized
+
+
+# -----------------------------------------------------------------------------
+# User persistence
+# -----------------------------------------------------------------------------
+
+
+def get_user(email: str) -> Dict[str, Any]:
+    email = email.strip().lower()
+    if not email:
+        return {}
+
+    sb = _supabase()
+    if sb is not None:
+        try:
+            result = sb.table(USERS_TABLE).select("*").eq("email", email).limit(1).execute()
+            rows = getattr(result, "data", None) or []
+            if rows:
+                return _normalize_user(rows[0], email)
+        except Exception:
+            pass
+
+    local = _local_users()
+    if email in local:
+        return _normalize_user(local[email], email)
+    return {}
+
+
+def create_user(email: str) -> Dict[str, Any]:
+    email = email.strip().lower()
+    if not email:
+        return {}
+
+    existing = get_user(email)
+    if existing:
+        return existing
+
+    user = _default_user(email)
+    sb = _supabase()
+    if sb is not None:
+        try:
+            result = sb.table(USERS_TABLE).insert(user).execute()
+            rows = getattr(result, "data", None) or []
+            if rows:
+                return _normalize_user(rows[0], email)
+        except Exception:
+            pass
+
+    _local_users()[email] = user
     return user
 
 
-def user_can_analyze(email: str) -> bool:
-    if not _supabase_ready():
-        return True  # no paywall without Supabase
-    user = get_user(email)
-    if not user:
-        return True
-    return user["plan"] != "free" or user["analyses_used"] < user["analyses_limit"]
+def _update_user(email: str, fields: Dict[str, Any]) -> Dict[str, Any]:
+    email = email.strip().lower()
+    fields = {**fields, "updated_at": _now_iso()}
+    sb = _supabase()
+    if sb is not None:
+        try:
+            result = sb.table(USERS_TABLE).update(fields).eq("email", email).execute()
+            rows = getattr(result, "data", None) or []
+            if rows:
+                return _normalize_user(rows[0], email)
+        except Exception:
+            pass
+
+    local = _local_users()
+    user = _normalize_user(local.get(email), email)
+    user.update(fields)
+    local[email] = user
+    return _normalize_user(user, email)
 
 
-def activate_pro(email: str, plan: str) -> None:
-    supabase = get_supabase()
-    if not supabase:
-        return
-    limit = 999999
-    supabase.table("users").update({
-        "plan": plan,
-        "analyses_limit": limit,
-        "analyses_used": 0,
-    }).eq("email", email).execute()
+def _increment_usage(email: str, user: Dict[str, Any]) -> Dict[str, Any]:
+    count = int(user.get("usage_count") or 0) + 1
+    return _update_user(email, {"usage_count": count})
 
 
-# =============================================================================
-# Razorpay
-# =============================================================================
-
-def get_razorpay_creds():
-    key_id = st.secrets.get("RAZORPAY_KEY_ID", os.getenv("RAZORPAY_KEY_ID", ""))
-    key_secret = st.secrets.get("RAZORPAY_KEY_SECRET", os.getenv("RAZORPAY_KEY_SECRET", ""))
-    return key_id, key_secret
+# -----------------------------------------------------------------------------
+# Usage gate
+# -----------------------------------------------------------------------------
 
 
-def create_payment_link(email: str, plan: str) -> Optional[str]:
-    """Create a Razorpay payment link for the given plan."""
-    key_id, key_secret = get_razorpay_creds()
+def gate_analysis(email: str, consume_usage: bool = True) -> Tuple[bool, str, Dict[str, Any]]:
+    """Return (allowed, message, user). Increments usage when consume_usage=True.
+
+    Free users get FREE_USAGE_LIMIT analyses. Paid/active users are effectively
+    unlimited for normal SaaS usage.
+    """
+    email = email.strip().lower()
+    if not email:
+        return False, "Enter your email before running analysis.", {}
+
+    user = get_user(email) or create_user(email)
+    plan = str(user.get("plan", "free")).lower()
+    status = str(user.get("status", "active")).lower()
+    usage_count = int(user.get("usage_count") or 0)
+    usage_limit = int(user.get("usage_limit") or (PAID_USAGE_LIMIT if plan != "free" else FREE_USAGE_LIMIT))
+
+    paid_active = plan in {"pro", "paid", "premium", "team", "enterprise"} and status in {"active", "paid", "authenticated", "trialing"}
+    if paid_active:
+        if consume_usage:
+            user = _increment_usage(email, user)
+        return True, "Paid plan active.", user
+
+    if usage_count >= usage_limit:
+        return False, f"Free limit reached ({usage_count}/{usage_limit}). Upgrade to continue.", user
+
+    if consume_usage:
+        user = _increment_usage(email, user)
+        usage_count = int(user.get("usage_count") or usage_count + 1)
+    return True, f"Free usage: {usage_count}/{usage_limit}.", user
+
+
+# -----------------------------------------------------------------------------
+# Razorpay order, pricing, webhook, and subscription cancellation
+# -----------------------------------------------------------------------------
+
+
+def create_razorpay_order(email: str, amount_in_inr: int = 499, notes: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    key_id = _safe_secret("RAZORPAY_KEY_ID")
+    key_secret = _safe_secret("RAZORPAY_KEY_SECRET")
     if not key_id or not key_secret:
-        return None
-
-    plan_info = PLANS.get(plan, PLANS["pro"])
-    amount = plan_info["price"]
+        return {"error": "Razorpay credentials are not configured."}
 
     payload = {
-        "amount": amount,
+        "amount": int(amount_in_inr * 100),
         "currency": "INR",
-        "accept_partial": False,
-        "description": f"BA Assistant — {plan_info['name']} Plan",
-        "customer": {"email": email},
-        "notify": {"email": True, "sms": False},
-        "reminder_enable": True,
-        "notes": {"plan": plan, "email": email},
-        "callback_url": "",
-        "callback_method": "get",
+        "receipt": f"ba-assistant-{email}-{int(datetime.now().timestamp())}"[:40],
+        "payment_capture": 1,
+        "notes": {"email": email, **(notes or {})},
     }
+    try:
+        response = requests.post(
+            "https://api.razorpay.com/v1/orders",
+            headers=_razorpay_auth_header(),
+            data=json.dumps(payload),
+            timeout=20,
+        )
+        if response.status_code >= 400:
+            return {"error": response.text}
+        return response.json()
+    except Exception as exc:
+        return {"error": str(exc)}
 
-    resp = requests.post(
-        "https://api.razorpay.com/v1/payment_links",
-        auth=(key_id, key_secret),
-        json=payload,
-        timeout=15,
-    )
 
-    if resp.status_code == 200:
-        data = resp.json()
-        return data.get("short_url")
-    return None
+def render_pricing(email: str, user: Optional[Dict[str, Any]] = None) -> None:
+    user = user or get_user(email) or create_user(email)
+    plan = str(user.get("plan", "free")).title()
+    usage = int(user.get("usage_count") or 0)
+    limit = int(user.get("usage_limit") or FREE_USAGE_LIMIT)
+
+    with st.expander("💳 Pricing", expanded=False):
+        st.markdown(
+            f"""
+            **Current plan:** {plan}  
+            **Usage:** {usage}/{limit if limit < PAID_USAGE_LIMIT else 'Unlimited'}
+
+            **Pro — ₹499/month**
+            - Unlimited BA reports within fair use
+            - PDF export
+            - Fintech templates
+            - Image/PDF extraction
+            - Mermaid diagrams
+            """
+        )
+        key_id = _safe_secret("RAZORPAY_KEY_ID")
+        if not key_id:
+            st.caption("Add Razorpay credentials to enable live checkout.")
+            return
+
+        if st.button("Upgrade with Razorpay", use_container_width=True, key="razorpay_upgrade_btn"):
+            order = create_razorpay_order(email=email, amount_in_inr=499, notes={"plan": "pro"})
+            if "error" in order:
+                st.error(order["error"])
+                return
+            order_id = order.get("id", "")
+            components.html(
+                f"""
+                <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+                <button id="rzp-button" style="padding:10px 14px;border:0;border-radius:10px;background:#7c3aed;color:white;font-weight:700;width:100%;cursor:pointer;">Pay ₹499</button>
+                <script>
+                var options = {{
+                    "key": "{key_id}",
+                    "amount": "49900",
+                    "currency": "INR",
+                    "name": "BA Assistant",
+                    "description": "BA Assistant Pro Monthly",
+                    "order_id": "{order_id}",
+                    "prefill": {{"email": "{email}"}},
+                    "notes": {{"email": "{email}", "plan": "pro"}},
+                    "theme": {{"color": "#7c3aed"}}
+                }};
+                var rzp = new Razorpay(options);
+                document.getElementById('rzp-button').onclick = function(e){{ rzp.open(); e.preventDefault(); }}
+                </script>
+                """,
+                height=90,
+            )
+            st.info("After payment, webhook activation will update your plan automatically. Refresh if needed.")
 
 
-def verify_payment(payment_id: str) -> bool:
-    """Verify a Razorpay payment."""
-    key_id, key_secret = get_razorpay_creds()
-    if not key_id or not key_secret:
+def verify_razorpay_webhook(payload: bytes | str, signature: str, secret: Optional[str] = None) -> bool:
+    """Verify Razorpay webhook HMAC SHA256 signature."""
+    webhook_secret = secret or _safe_secret("RAZORPAY_WEBHOOK_SECRET") or _safe_secret("RAZORPAY_KEY_SECRET")
+    if not webhook_secret or not signature:
         return False
+    body = payload if isinstance(payload, bytes) else payload.encode("utf-8")
+    digest = hmac.new(webhook_secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(digest, signature)
 
-    resp = requests.get(
-        f"https://api.razorpay.com/v1/payments/{payment_id}",
-        auth=(key_id, key_secret),
-        timeout=10,
+
+def process_razorpay_webhook(payload: bytes | str, signature: str) -> Tuple[bool, str]:
+    """Verify and process Razorpay payment/subscription events.
+
+    This helper can be called from a webhook endpoint outside Streamlit, or from a
+    lightweight Streamlit-compatible request handler if one is added later.
+    """
+    if not verify_razorpay_webhook(payload, signature):
+        return False, "Invalid Razorpay webhook signature."
+
+    raw = payload.decode("utf-8") if isinstance(payload, bytes) else payload
+    try:
+        event = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        return False, f"Invalid webhook JSON: {exc}"
+
+    event_name = event.get("event", "")
+    entity = (
+        event.get("payload", {}).get("payment", {}).get("entity")
+        or event.get("payload", {}).get("subscription", {}).get("entity")
+        or {}
     )
+    notes = entity.get("notes") or {}
+    email = (notes.get("email") or entity.get("email") or entity.get("contact") or "").strip().lower()
+    if not email:
+        return False, "Webhook verified, but no customer email was found in notes/entity."
 
-    if resp.status_code == 200:
-        data = resp.json()
-        return data.get("status") == "captured"
-    return False
+    if event_name in {"payment.captured", "order.paid", "subscription.activated", "subscription.charged"}:
+        _update_user(
+            email,
+            {
+                "plan": "pro",
+                "status": "active",
+                "usage_limit": PAID_USAGE_LIMIT,
+                "razorpay_payment_id": entity.get("id"),
+                "razorpay_subscription_id": entity.get("subscription_id") or entity.get("id"),
+            },
+        )
+        return True, f"Activated Pro for {email}."
+
+    if event_name in {"payment.failed", "subscription.cancelled", "subscription.halted"}:
+        _update_user(email, {"status": "inactive", "plan": "free", "usage_limit": FREE_USAGE_LIMIT})
+        return True, f"Marked account inactive/free for {email}."
+
+    return True, f"Webhook verified; ignored event {event_name}."
 
 
-# =============================================================================
-# Streamlit UI Components
-# =============================================================================
-
-def render_pricing(email: str):
-    """Render pricing cards and handle upgrades."""
+def cancel_subscription(email: str, subscription_id: Optional[str] = None) -> Tuple[bool, str]:
+    email = email.strip().lower()
     user = get_user(email)
-    current_plan = user["plan"] if user else "free"
-    usage = user["analyses_used"] if user else 0
-    limit = user["analyses_limit"] if user else FREE_TIER_LIMIT
+    subscription_id = subscription_id or str(user.get("razorpay_subscription_id") or "")
+    if not subscription_id:
+        _update_user(email, {"plan": "free", "status": "cancelled", "usage_limit": FREE_USAGE_LIMIT})
+        return True, "No Razorpay subscription ID found; account marked cancelled locally."
 
-    st.sidebar.divider()
-    st.sidebar.subheader("💳 Your Plan")
+    key_id = _safe_secret("RAZORPAY_KEY_ID")
+    key_secret = _safe_secret("RAZORPAY_KEY_SECRET")
+    if not key_id or not key_secret:
+        _update_user(email, {"plan": "free", "status": "cancelled", "usage_limit": FREE_USAGE_LIMIT})
+        return True, "Razorpay credentials missing; account marked cancelled locally."
 
-    if current_plan == "free":
-        remaining = max(0, limit - usage)
-        st.sidebar.metric("Free Analyses Left", remaining)
-        if remaining == 0:
-            st.sidebar.warning("Free limit reached!")
-
-        st.sidebar.divider()
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            if st.button("✨ Upgrade Pro", use_container_width=True, type="primary"):
-                link = create_payment_link(email, "pro")
-                if link:
-                    st.session_state["payment_link"] = link
-                    st.session_state["show_payment"] = True
-                else:
-                    st.error("Razorpay not configured")
-        with col2:
-            if st.button("👥 Team", use_container_width=True):
-                link = create_payment_link(email, "team")
-                if link:
-                    st.session_state["payment_link"] = link
-                    st.session_state["show_payment"] = True
-                else:
-                    st.error("Razorpay not configured")
-    else:
-        st.sidebar.success(f"🎉 {current_plan.upper()} Plan — Unlimited")
-        st.sidebar.caption(f"Analyses used: {usage}")
-
-    # Payment modal
-    if st.session_state.get("show_payment"):
-        link = st.session_state.get("payment_link", "")
-        st.sidebar.markdown(f"""
-        ### Complete Payment
-        [Click here to pay →]({link})
-
-        After payment, paste your **Payment ID** below:
-        """)
-        payment_id = st.sidebar.text_input("Payment ID", key="payment_id_input")
-        if payment_id and st.sidebar.button("Verify Payment", type="primary"):
-            if verify_payment(payment_id):
-                plan = "pro" if "499" in link else "team"
-                activate_pro(email, plan)
-                st.session_state["show_payment"] = False
-                st.sidebar.success("✅ Payment verified! Refreshing...")
-                time.sleep(1)
-                st.rerun()
-            else:
-                st.sidebar.error("Payment not found or failed")
-
-
-def gate_analysis(email: str) -> bool:
-    """Returns True if user can run analysis, False if paywall needed."""
-    if not email or "@" not in email:
-        st.warning("Enter your email to start.")
-        return False
-
-    if user_can_analyze(email):
-        increment_usage(email)
-        return True
-
-    st.error("🚫 Free limit reached. Upgrade to Pro for unlimited analyses.")
-    return False
+    try:
+        response = requests.post(
+            f"https://api.razorpay.com/v1/subscriptions/{subscription_id}/cancel",
+            headers=_razorpay_auth_header(),
+            data=json.dumps({"cancel_at_cycle_end": 1}),
+            timeout=20,
+        )
+        if response.status_code >= 400:
+            return False, response.text
+        _update_user(email, {"plan": "free", "status": "cancelled", "usage_limit": FREE_USAGE_LIMIT})
+        return True, "Subscription cancellation requested."
+    except Exception as exc:
+        return False, str(exc)
