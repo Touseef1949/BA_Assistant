@@ -151,4 +151,4 @@ streamlit run app.py
 
 ---
 
-*Built by [Touseef Shaik](https://touseefshaik.com) — Product Owner at Broadridge, 12+ years in fintech. Building AI tools for the people who actually do the work.*
+*Built by [Touseef Shaik](https://touseefshaik.com) — AI Product Owner at Broadridge. Previously 12+ years at CGI building AI products for enterprise. Now building AI tools for BAs and Product Owners.*
