@@ -144,9 +144,9 @@ ANALYSIS_TYPES = [
 ]
 
 ANALYSIS_TYPE_INFO = {
-    "Comprehensive": "⚡ Fast (~30-90s) — Single agent, full 14-section report with Mermaid diagrams. Best for most use cases.",
+    "Comprehensive": "⚡ Fast (~30-90s) — Single senior agent, full 14-section report with Mermaid diagrams. Best for most use cases.",
     "Interactive (Q&A)": "💬 Step-by-step — Generates clarifying questions, you answer, then runs full analysis with enriched context.",
-    "Enterprise": "🏢 Thorough (~3-5 min) — Full 5-agent Agno Team coordinates specialists. Use for complex, compliance-heavy projects.",
+    "Enterprise": "🏢 Thorough (~3-5 min) — Multi-agent Team (5 specialists) coordinated for deep, compliance-heavy projects. RBI/NPCI/SEBI expertise across all members.",
     "Quick Feature Extraction": "🎯 Fast — Feature list, MoSCoW priority, dependencies, MVP grouping only.",
     "User Stories Generation": "📋 INVEST stories with acceptance criteria and story points.",
     "Technical Architecture": "🏗️ System design, components, APIs, integrations, NFRs, deployment approach.",
@@ -1042,9 +1042,9 @@ def render_header() -> None:
         """
         <div class="hero-card">
           <div class="hero-title">🚀 BA Assistant — AI-Powered Requirement Analysis</div>
-          <p class="hero-subtitle">5-agent Agno team · Streaming · PDF export · Indian fintech templates · Document upload</p>
+          <p class="hero-subtitle">Multi-agent analysis · Streaming · PDF export · Indian fintech templates · Document upload</p>
           <div class="gradient-line"></div>
-          <span class="small-muted">Turn raw requirements, emails, PRDs, whiteboard snapshots, and PDFs into implementation-ready BA/PO deliverables.</span>
+          <span class="small-muted">Turn raw requirements, emails, PRDs, whiteboard snapshots, and PDFs into implementation-ready BA/PO deliverables. Enterprise mode coordinates 5 specialist agents; default modes use a single fast senior agent.</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1075,7 +1075,7 @@ def sidebar_config() -> Tuple[AppConfig, str, Dict[str, Any]]:
             "Worker Model",
             ["deepseek-v4-flash"],
             index=0,
-            help="Workers use DeepSeek V4 Flash; the 5-agent Team coordinator uses DeepSeek V4 Pro.",
+            help="Default and most modes use DeepSeek V4 Flash via a single senior agent. Enterprise mode additionally uses a DeepSeek V4 Pro coordinator to orchestrate 5 specialist agents.",
         )
 
         with st.expander("Advanced", expanded=False):
@@ -1242,7 +1242,7 @@ def render_downloads(config: AppConfig, result: str) -> None:
 
 def render_interactive_flow(config: AppConfig, email: str, requirements_text: str) -> None:
     st.markdown("#### Interactive Q&A mode")
-    st.caption("Step 1: generate clarifying questions · Step 2: answer them · Step 3: run the full 5-agent Team with enriched context.")
+    st.caption("Step 1: generate clarifying questions (single agent) · Step 2: answer them · Step 3: run the multi-agent Team with your answers as extra context.")
 
     stage = st.session_state.get("interactive_stage", "input")
     if stage == "input":
@@ -1295,7 +1295,7 @@ def render_interactive_flow(config: AppConfig, email: str, requirements_text: st
             )
             st.session_state["interactive_stage"] = "generate"
             placeholder = st.empty()
-            with st.spinner("Running 5-agent Team with enriched Q&A context..."):
+            with st.spinner("Running multi-agent Team with enriched Q&A context..."):
                 analyzer = RequirementAnalyzer(config.model_id, config.show_member_responses, enable_vision=False)
                 result = stream_to_markdown(
                     lambda stream: analyzer.run_interactive(requirements_text, config.project_name, qa_transcript, stream=stream),
