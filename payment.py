@@ -11,6 +11,7 @@ import base64
 import hashlib
 import hmac
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Tuple
@@ -19,11 +20,23 @@ import requests
 import streamlit as st
 import streamlit.components.v1 as components
 
+logger = logging.getLogger(__name__)
+
 try:
     from supabase import Client, create_client
 except Exception:  # pragma: no cover - dependency installed in production
     Client = None  # type: ignore[assignment]
     create_client = None  # type: ignore[assignment]
+
+
+def _is_local_dev() -> bool:
+    """True only when the operator has explicitly opted into local-dev mode.
+
+    In production (HF Spaces / Streamlit Cloud) this must return False so
+    that Supabase or Razorpay failures are surfaced, not silently swallowed.
+    """
+    flag = os.environ.get("BA_ASSISTANT_LOCAL_DEV", "").strip().lower()
+    return flag in ("1", "true", "yes")
 
 
 FREE_USAGE_LIMIT = 2
@@ -115,8 +128,13 @@ def get_user(email: str) -> Dict[str, Any]:
             rows = getattr(result, "data", None) or []
             if rows:
                 return _normalize_user(rows[0], email)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Supabase get_user failed for %s: %s", email, exc)
+            if not _is_local_dev():
+                # Production: surface the error. Do NOT silently fall back to
+                # session-local storage, because that lets users reset their
+                # quota by opening a new session.
+                raise
 
     local = _local_users()
     if email in local:
@@ -141,8 +159,10 @@ def create_user(email: str) -> Dict[str, Any]:
             rows = getattr(result, "data", None) or []
             if rows:
                 return _normalize_user(rows[0], email)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Supabase create_user failed for %s: %s", email, exc)
+            if not _is_local_dev():
+                raise
 
     _local_users()[email] = user
     return user
@@ -158,8 +178,10 @@ def _update_user(email: str, fields: Dict[str, Any]) -> Dict[str, Any]:
             rows = getattr(result, "data", None) or []
             if rows:
                 return _normalize_user(rows[0], email)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception("Supabase _update_user failed for %s: %s", email, exc)
+            if not _is_local_dev():
+                raise
 
     local = _local_users()
     user = _normalize_user(local.get(email), email)
