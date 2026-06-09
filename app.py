@@ -88,7 +88,16 @@ except Exception as exc:  # pragma: no cover
         st.info("Payment module is unavailable. Install dependencies and verify payment.py.")
 
     def gate_analysis(email: str, consume_usage: bool = True) -> Tuple[bool, str, Dict[str, Any]]:  # type: ignore[override]
-        return True, "Payment module unavailable; running in local mode.", get_user(email)
+        # Security: fail CLOSED by default. Only allow the local-dev
+        # bypass when the operator has explicitly set this environment
+        # variable. Otherwise a missing payment module in production
+        # would silently disable the paywall.
+        if os.environ.get("BA_ASSISTANT_LOCAL_DEV", "").strip().lower() in ("1", "true", "yes"):
+            return True, "Payment module unavailable; running in local dev mode.", get_user(email)
+        return False, (
+            "Payment module is unavailable. Please contact the administrator. "
+            "Analysis is paused to protect paid features."
+        ), get_user(email)
 else:
     PAYMENT_IMPORT_ERROR = None
 
