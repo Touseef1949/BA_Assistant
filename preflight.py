@@ -37,9 +37,10 @@ def run(name: str, fn, *args, **kwargs):
 
 def check_syntax():
     import ast
-    for fname in ["app.py", "payment.py"]:
+    for fname in ["app.py", "payment.py", "preflight.py"]:
         path = os.path.join(os.path.dirname(__file__) or ".", fname)
-        ast.parse(open(path).read())
+        with open(path, "r", encoding="utf-8") as handle:
+            ast.parse(handle.read())
     return True
 
 
@@ -54,9 +55,10 @@ def check_imports():
         RequirementAnalyzer, generate_pdf, sanitize_pdf_text,
         extract_mermaid_code, extract_pdf_text, render_mermaid,
         FINANCIAL_TEMPLATES, PROMPT_INJECTION_GUARD, REPORT_STRUCTURE,
-        AppConfig, ANALYSIS_TYPES, ANALYSIS_TYPE_INFO,
+        AppConfig, ANALYSIS_TYPES, ANALYSIS_TYPE_INFO, TEXT_ANALYSIS_MODEL_ID,
     )
-    from payment import get_user, create_user, gate_analysis, render_pricing
+    from payment import get_user, create_user, gate_analysis, render_pricing, request_login_otp, verify_login_otp
+    assert TEXT_ANALYSIS_MODEL_ID == "deepseek-v4-flash"
     return True
 
 
@@ -77,9 +79,11 @@ def check_models():
 
     worker = make_worker_model()
     print(f"    Worker: {type(worker).__name__}")
+    assert getattr(worker, "id", "deepseek-v4-flash") == "deepseek-v4-flash"
 
     coord = make_coordinator_model()
     print(f"    Coordinator: {type(coord).__name__}")
+    assert getattr(coord, "id", "deepseek-v4-flash") == "deepseek-v4-flash"
 
     google_key = safe_secret("GOOGLE_API_KEY")
     if google_key:
@@ -200,9 +204,9 @@ def main():
         print("\n[PDF + Mermaid]")
         ok = check_pdf()
         if ok:
-            print(f"\n{DIVIDER}\n{PDF} PDF generation passed\n{DIVIDER}")
+            print(f"\n{DIVIDER}\n{PASS} PDF generation passed\n{DIVIDER}")
         else:
-            print(f"\n{DIVIDER}\n{PDF} PDF generation FAILED\n{DIVIDER}")
+            print(f"\n{DIVIDER}\n{FAIL} PDF generation FAILED\n{DIVIDER}")
             sys.exit(1)
         return
 

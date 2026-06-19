@@ -8,3 +8,6 @@ requests
 fpdf2
 pdfplumber
 Pillow
+pytest
+pytest-cov
+locust

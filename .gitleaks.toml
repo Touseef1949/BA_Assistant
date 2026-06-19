@@ -1,0 +1,13 @@
+title = "BA Assistant Gitleaks Configuration"
+
+[allowlist]
+description = "Allow documented placeholders and non-secret examples."
+paths = [
+  '''\.streamlit/secrets\.toml\.example$''',
+]
+regexes = [
+  '''your-key''',
+  '''your-[a-z-]+''',
+  '''example\.com''',
+  '''ba-assistant-local-dev''',
+]

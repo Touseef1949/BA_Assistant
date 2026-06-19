@@ -1,154 +1,93 @@
-# BA Assistant — AI Copilot for Requirements Analysis
+# BA Assistant
 
-> **5 AI agents. 60 seconds. Raw input → delivery-ready specs, user stories, risks & diagrams.**
+BA Assistant turns rough requirements into a structured BA/Product Owner report: scope, stakeholders, assumptions, functional and non-functional requirements, user stories, risks, architecture notes, roadmap, and Mermaid diagrams.
 
-[![Live App](https://img.shields.io/badge/Try%20It-Live%20App-blue?style=flat&logo=streamlit)](https://businessanalysttools.streamlit.app)
-[![Website](https://img.shields.io/badge/Website-touseefshaik.com-2563eb?style=flat)](https://touseefshaik.com/tools/ba-assistant)
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.x-FF4B4B?style=flat&logo=streamlit)](https://streamlit.io)
+The Streamlit app now uses a main-content workflow:
 
----
+1. Sign in with email OTP.
+2. Paste or upload requirements.
+3. Click `Generate BA Report`.
+4. Export Markdown, TXT, PDF, or Mermaid.
 
-## What It Does
+The sidebar is secondary and contains account status, usage, history, and advanced settings.
 
-BA Assistant converts messy, unstructured input into a **complete requirements report** using 5 specialized AI agents working in parallel.
+## Model Policy
 
-**Input** → a raw text description, uploaded document, or pasted BRD  
-**Output** → structured markdown report with specs, stories, architecture, risks & Mermaid diagrams
+All BA text-analysis agents and coordinator paths use `deepseek-v4-flash`.
 
-### Real Example
+Optional image extraction uses Gemini only when the user explicitly uploads an image and clicks extract. PDF extraction is local through `pdfplumber`.
 
-<details>
-<summary><b>Input</b> (what you paste in)</summary>
+## Features
 
-> We need a loan onboarding portal. Customers should apply online with KYC verification, upload documents, and track application status. Admin approval workflow with notifications at each stage.
-
-</details>
-
-<details>
-<summary><b>Output</b> (what the 5 agents generate)</summary>
-
-- ✅ **12 functional requirements** — categorized (Onboarding, KYC, Documents, Workflow, Notifications)
-- ✅ **5 non-functional requirements** — security, scalability, performance, audit, compliance
-- ✅ **8 user stories** with acceptance criteria (e.g. "As a customer, I want to upload my PAN card so my KYC is verified")
-- ✅ **MoSCoW-prioritized feature list**
-- ✅ **Architecture recommendation** — microservices + document DB + message queue pattern
-- ✅ **7 risks identified** with probability, impact, and mitigation strategies
-- ✅ **3 Mermaid diagrams** — flow diagram, sequence diagram, state diagram
-- ✅ **Export as PDF** or copy-paste into Confluence / Notion / PRD
-
-</details>
-
----
-
-## Features (v2)
-
-| Feature | Description |
-|---------|-------------|
-| 🧠 **5-Agent Agno Team** | Requirements Analyst, Backlog Manager, Solution Architect, Risk Assessor, Diagram Generator — all run in parallel |
-| 📄 **Document Upload** | Upload images (whiteboard, handwritten notes) or PDFs — Gemini 3.5 Flash extracts text |
-| 💬 **Interactive Q&A** | After analysis, ask follow-up questions — the agents refine the output |
-| 📋 **4 Fintech Templates** | Loan Onboarding, KYC Portal, Payment Gateway, Insurance Claims — one-click analysis |
-| 📊 **PDF Export** | One-click export to professional PDF with fpdf2 |
-| ⚡ **Dual Mode** | Fast (single agent, 30s) or Deep (5-agent Team, 60-90s) |
-| 🔍 **Mermaid Diagrams** | Flow, sequence, state, class, and ER diagrams rendered inline |
-
----
-
-## Architecture
-
-```
-User Input (text / image / PDF)
-        │
-        ▼
-┌─────────────────────────────┐
-│   Agno Team (Enterprise)    │
-│                             │
-│  ┌─────────┐  ┌──────────┐  │
-│  │ Req     │  │ Backlog  │  │
-│  │ Analyst │  │ Manager  │  │
-│  │ (V4 F)  │  │ (V4 F)   │  │
-│  └────┬────┘  └────┬─────┘  │
-│       │            │         │
-│  ┌────┴────────────┴─────┐  │
-│  │    Coordinator        │  │
-│  │    (V4 Pro)           │  │
-│  └────┬──────────────┬───┘  │
-│       │              │      │
-│  ┌────┴────┐  ┌──────┴───┐  │
-│  │ Solution│  │ Risk     │  │
-│  │ Arch    │  │ Assessor │  │
-│  │ (V4 F)  │  │ (V4 F)   │  │
-│  └─────────┘  └──────────┘  │
-│                             │
-│  ┌──────────┐               │
-│  │ Diagram  │  ← Gemini     │
-│  │ Generator│     3.5 Flash │
-│  └──────────┘               │
-└─────────────────────────────┘
-        │
-        ▼
-  Structured Report (Markdown)
-```
-
-### Model Split
-- **Coordinator:** DeepSeek V4 Pro — task decomposition & synthesis
-- **4 Worker Agents:** DeepSeek V4 Flash — fast parallel analysis
-- **Vision (Document Upload):** Gemini 3.5 Flash — image/PDF text extraction
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | [Streamlit](https://streamlit.io) |
-| Agent Framework | [Agno](https://agno.ai) (Team mode) |
-| LLMs | DeepSeek V4 Pro, DeepSeek V4 Flash, Gemini 3.5 Flash |
-| PDF Export | [fpdf2](https://pyfpdf.github.io/fpdf2/) |
-| Diagrams | Mermaid.js (rendered inline) |
-| Deployment | Streamlit Cloud |
-
----
+- OTP-style email login through Supabase Auth.
+- Free-tier usage tracking with `analyses_used` and `analyses_limit`.
+- Standard report generation, Interactive Q&A, and advanced Deep Team mode.
+- Markdown, TXT, PDF, and Mermaid exports.
+- Per-user report history stored under salted hashed filenames.
+- Mobile-friendly main workflow with the sidebar acting as a secondary drawer.
+- Pytest pyramid foundation with smoke, unit, integration, regression, and Streamlit AppTest coverage.
+- GitHub Actions CI with compile, coverage, and secret-scan gates.
+- Structured JSONL error logging, a safe health monitor, and a Locust scaffold that only hits `/` and `/_stcore/health`.
 
 ## Quick Start
 
 ```bash
-# Clone
-git clone https://github.com/Touseef1949/BA_Assistant.git
-cd BA_Assistant
-
-# Install
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
-
-# Set API keys
+export BA_ASSISTANT_LOCAL_DEV=1
 export DEEPSEEK_API_KEY="your-key"
-export GEMINI_API_KEY="your-key"
-
-# Run
 streamlit run app.py
 ```
 
----
+For local development, OTP codes are displayed in the app after `Send code`. Production must use Supabase OTP and must not set `BA_ASSISTANT_LOCAL_DEV=1`.
 
-## Pricing Tiers
+## Secrets
 
-| Tier | Price | What You Get |
-|------|-------|-------------|
-| **Free** | ₹0 | Single-agent analysis (30s), text input only, limited exports |
-| **Pro** | ₹499/mo | 5-agent Team, document upload, PDF export, interactive Q&A |
-| **Team** | ₹1,999/mo | Everything in Pro + shared workspace, 5 team members |
+Use `.streamlit/secrets.toml.example` as the template.
 
----
+Required for production:
 
-## Roadmap
+- `DEEPSEEK_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `BA_ASSISTANT_AUTH_SECRET`
 
-- [ ] Confluence / Jira export integration
-- [ ] Custom BRD templates (upload your company's format)
-- [ ] Team collaboration (shared analyses, comments)
-- [ ] Batch analysis (process multiple BRDs at once)
-- [ ] API access for CI/CD pipelines
+Optional:
 
----
+- `RAZORPAY_KEY_ID`
+- `RAZORPAY_KEY_SECRET`
+- `RAZORPAY_WEBHOOK_SECRET`
+- `GOOGLE_API_KEY` for image extraction
 
-*Built by [Touseef Shaik](https://touseefshaik.com) — AI Product Owner at Broadridge. Previously 12+ years at CGI building AI products for enterprise. Now building AI tools for BAs and Product Owners.*
+## Validation
+
+```bash
+/usr/local/bin/python3 -m py_compile app.py payment.py preflight.py
+pytest -q
+python3 preflight.py --quick
+```
+
+`pytest -q` enforces the Phase 1 coverage gate through `pytest-cov`.
+
+For the repo-local pre-push equivalent:
+
+```bash
+PYTHON_BIN=/usr/local/bin/python3 ./scripts/pre_push_check.sh
+```
+
+To monitor a local or deployed Streamlit app without triggering model usage:
+
+```bash
+python3 scripts/health_monitor.py --base-url http://localhost:8501 --include-root
+```
+
+To run the safe load scaffold:
+
+```bash
+locust -f tests/load/locustfile.py --host http://localhost:8501
+```
+
+The Locust file only checks `/` and `/_stcore/health`; do not add LLM-consuming flows to load tests.
+
+See `RUNBOOK.md` for production operations, incident checks, and deployment notes.
