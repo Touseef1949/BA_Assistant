@@ -303,7 +303,7 @@ def verify_login_otp(email: str, otp: str) -> Tuple[bool, str, Dict[str, Any]]:
             return False, "Supabase Auth is not available.", {}
         # Supabase email template determines OTP type — try every valid type.
         # Also try camelCase verifyOtp (JS-style) as a fallback.
-        otp_types = ("email", "magiclink", "signup", "recovery")
+        otp_types = ("email", "signup", "magiclink", "recovery")
         verify_fn = getattr(auth, "verify_otp", None) or getattr(auth, "verifyOtp", None)
         if verify_fn is None:
             return False, "Supabase Auth OTP verification is not available.", {}
