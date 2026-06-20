@@ -199,16 +199,51 @@ CARD_CSS = """
 :root {
   --accent: #1DB954;
   --accent-dark: #169a45;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --border: #dbe3ef;
-  --surface: #ffffff;
-  --band: #f7fafc;
+  --text: #1A1A1A;
+  --muted: #4A4A4A;
+  --muted-2: #8A8A8A;
+  --border: #E8E8E8;
+  --bg: #FFFFFF;
+  --bg-2: #FAFAFA;
+  --panel-soft: #F5F5F5;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
-[data-testid="stAppViewContainer"] {
-  background: #ffffff;
-}
+.stApp { background: var(--bg); color: var(--text); }
 .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 1080px; }
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+}
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] span { color: var(--muted); }
+[data-testid="stSidebar"] div.stButton > button {
+  background: var(--bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+[data-testid="stSidebar"] div.stButton > button:hover {
+  background: var(--panel-soft) !important;
+  border-color: var(--accent) !important;
+}
+[data-testid="stSidebar"] hr { border-color: var(--border) !important; }
+[data-testid="stSidebarContent"]::-webkit-scrollbar-track { background: var(--panel-soft); }
+[data-testid="stSidebarContent"]::-webkit-scrollbar-thumb { background: rgba(29,185,84,0.3); }
+
+/* ── Input fields ── */
+.stTextInput input, .stTextArea textarea {
+  background: var(--bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+.stTextInput input:focus, .stTextArea textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(29,185,84,0.12) !important;
+}
+
+/* ── App layout classes ── */
 .hero-card {
   padding: 0.35rem 0 0.9rem 0;
   border-bottom: 1px solid var(--border);
@@ -218,39 +253,41 @@ CARD_CSS = """
   font-size: 2.1rem;
   font-weight: 800;
   letter-spacing: 0;
-  color: var(--ink);
+  color: var(--text);
   margin-bottom: 0.2rem;
 }
-.hero-subtitle { color: #334155; font-size: 1.02rem; margin: 0; max-width: 760px; }
+.hero-subtitle { color: var(--muted); font-size: 1.02rem; margin: 0; max-width: 760px; }
 .metric-card, .soft-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
-  background: var(--surface);
+  background: var(--bg);
+  box-shadow: var(--shadow);
 }
 button[kind="primary"] {
   border-radius: 8px !important;
   background: var(--accent) !important;
-  border: 1px solid var(--accent-dark) !important;
+  border-color: var(--accent) !important;
+  color: #FFFFFF !important;
 }
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color: #334155; }
 .small-muted { color: var(--muted); font-size: 0.88rem; }
 .auth-shell {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
-  background: var(--band);
+  background: var(--bg-2);
   margin-bottom: 1rem;
 }
 .workflow-band {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 1rem;
-  background: #fff;
+  background: var(--bg);
+  box-shadow: var(--shadow);
 }
 .footer {
   text-align:center;
-  color:#64748b;
+  color: var(--muted);
   padding: 1.2rem 0 0.3rem 0;
   font-size: 0.92rem;
 }
@@ -264,13 +301,20 @@ button[kind="primary"] {
   border: 1px solid rgba(29,185,84,0.25);
   border-radius: 6px;
   font-size: 0.88rem;
-  color: var(--ink);
+  color: var(--text);
   margin-bottom: 0.6rem;
 }
 .auth-badge-check { color: var(--accent); font-weight: 700; font-size: 1rem; }
-.auth-badge-email { font-weight: 600; color: var(--ink); }
+.auth-badge-email { font-weight: 600; color: var(--text); }
 .auth-badge-plan { color: var(--muted); margin-left: 0.2rem; }
 code { white-space: pre-wrap !important; }
+
+/* ── Expanders ── */
+.streamlit-expanderHeader { background: var(--panel-soft); color: var(--text); }
+details summary { color: var(--text); }
+[data-testid="stExpander"] { background: var(--bg); border-color: var(--border); }
+
+/* ── Mobile ── */
 @media (max-width: 640px) {
   .block-container { padding-top: 1.9rem; padding-left: 0.8rem; padding-right: 0.8rem; }
   .hero-title { font-size: 1.55rem; }
