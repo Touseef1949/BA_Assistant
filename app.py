@@ -342,9 +342,17 @@ details summary { color: var(--text); }
 }
 
 /* ── Universal light-theme overrides (zero dark backgrounds) ── */
-h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text); }
+h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text) !important; }
+.stMarkdown p, .stMarkdown span { color: var(--text) !important; }
+[data-testid="stMarkdownContainer"] p { color: var(--muted) !important; }
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p { color: var(--muted) !important; }
+[data-testid="stSidebar"] { background: var(--bg-2) !important; }
+[data-testid="stSidebar"] * { color: var(--text) !important; }
+[data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: var(--muted) !important; }
 .stAlert { background: var(--panel-soft) !important; border-color: var(--border) !important; color: var(--text) !important; }
 .stAlertContainer { background: var(--panel-soft) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-testid="stAppViewContainer"] { background: var(--bg) !important; }
+[data-testid="stHeader"] { background: var(--bg) !important; }
 [data-testid="stMetric"] { background: var(--bg) !important; border-color: var(--border) !important; }
 [data-testid="stMetricValue"] { color: var(--text) !important; }
 [data-testid="stMetricLabel"] { color: var(--muted) !important; }
@@ -353,6 +361,8 @@ h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text); }
   border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   transition: all 0.2s !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
 }
 .stButton button:hover { border-color: var(--accent) !important; background: rgba(29,185,84,0.08) !important; }
 [data-testid="stBaseButton-secondary"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
@@ -365,6 +375,7 @@ h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text); }
   border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   background: var(--bg) !important;
+  color: var(--text) !important;
 }
 [data-baseweb="input"]:focus {
   border-color: var(--accent) !important;
