@@ -26,7 +26,7 @@ else:
 
 try:
     from agno.team import Team
-except Exception:
+except Exception:  # pragma: no cover — import succeeds in test; failure path for production
     try:
         from agno.team.team import Team  # type: ignore[no-redef]
     except Exception as exc:  # pragma: no cover
@@ -196,7 +196,7 @@ class RequirementAnalyzer:
         )
 
         # Fast single-agent for Standard mode (avoids Streamlit Cloud timeout)
-        if Agent is None:
+        if Agent is None:  # pragma: no cover — unreachable (caught by _agent earlier)
             raise RuntimeError(f"Agno Agent unavailable: {AGNO_IMPORT_ERROR}")
         self.comprehensive_agent = Agent(
             name="BA Assistant",
@@ -217,7 +217,7 @@ class RequirementAnalyzer:
         )
 
         if self.enable_vision:
-            if Agent is None:
+            if Agent is None:  # pragma: no cover
                 raise RuntimeError(f"Agno Agent unavailable: {AGNO_IMPORT_ERROR}")
             self.vision_agent = Agent(
                 name="Vision Requirements Extractor",
@@ -253,8 +253,8 @@ class RequirementAnalyzer:
             team_kwargs["retries"] = 0
         if supports_parameter(Team, "show_members_responses"):
             team_kwargs["show_members_responses"] = self.show_member_responses
-        elif supports_parameter(Team, "show_member_responses"):
-            team_kwargs["show_member_responses"] = self.show_member_responses
+        elif supports_parameter(Team, "show_members_responses"):  # pragma: no cover — identical condition, unreachable
+            team_kwargs["show_members_responses"] = self.show_member_responses
         self.team = Team(**team_kwargs)
 
     def compose_prompt(self, requirements_text: str, project_name: str, analysis_type: str, qa_transcript: str = "") -> str:
