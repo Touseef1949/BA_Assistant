@@ -287,6 +287,22 @@ def test_sanitize_pdf_text_special():
     assert "Rs." in result or "rupees" in result
 
 
+def test_generate_pdf_returns_bytes(monkeypatch):
+    """generate_pdf when pdf.output() returns bytes directly."""
+    from unittest.mock import MagicMock, patch as mockpatch
+    with mockpatch.object(report_utils, "FPDF", autospec=True) as mock_fpdf:
+        inst = MagicMock()
+        inst.output.return_value = b"pdf bytes"
+        mock_fpdf.return_value = inst
+        result = report_utils.generate_pdf("Test", "# Hi\n\nContent")
+        assert isinstance(result, bytes)
+
+def test_sanitize_mermaid_empty_lines():
+    """sanitize_mermaid_code with empty lines."""
+    result = report_utils.sanitize_mermaid_code("graph TD\n\n  \n  A-->B\n\n")
+    assert "graph TD" in result
+    assert "A-->B" in result
+
 def test_generate_pdf_with_content(monkeypatch, tmp_path):
     """Generate PDF with valid markdown (requires fpdf2)."""
     try:
