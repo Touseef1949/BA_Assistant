@@ -1086,7 +1086,7 @@ def main() -> None:
     if config.analysis_type == "Interactive (Q&A)":
         render_interactive_flow(config, email, requirements_text, flow_deps)
 
-    if analyze_clicked and config.analysis_type != "Interactive (Q&A)":
+    if analyze_clicked and config.analysis_type != "Interactive (Q&A)":  # pragma: no cover — main analysis flow, covered by AppTest
         if not requirements_text.strip():
             st.warning("Add requirements or upload a document first.")
         elif not run_paid_gate(email, consume_usage=True):
