@@ -262,16 +262,14 @@ def request_login_otp(email: str) -> Tuple[bool, str]:
             return True, "Verification code sent. Check your email."
         except Exception as exc:
             exc_type = type(exc).__name__
-            exc_msg = str(exc)[:200]
+            supabase_msg = getattr(exc, "message", "") or str(exc)[:200]
+            exc_msg = supabase_msg[:200] if supabase_msg else str(exc)[:200]
             logger.exception("Supabase OTP request failed for %s: %s", email, exc)
             log_error("supabase_otp_request_failed", exc, {"email_domain": email.split("@")[-1] if "@" in email else ""})
             if not _is_local_dev():
-                # Surface the actual error type so users aren't stuck with a generic message
-                if "AuthApiError" in exc_type or "Auth" in exc_type:
-                    return False, f"Email verification is being set up. Try again in a moment. ({exc_type})"
                 if "timeout" in exc_msg.lower() or "Timeout" in exc_type:
                     return False, "Email service timed out. Please try again."
-                return False, f"Could not send verification code. ({exc_type})"
+                return False, f"Could not send verification code. ({exc_type}: {exc_msg})"
             return False, f"OTP error: {exc_msg}"
 
     if not _is_local_dev():
