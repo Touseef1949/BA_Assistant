@@ -117,7 +117,7 @@ def test_request_login_otp_supabase_success(monkeypatch):
 
     assert ok is True
     assert message == "Verification code sent. Check your email."
-    assert calls == [{"email": "user@example.com", "options": {"should_create_user": True}}]
+    assert calls == [{"email": "user@example.com"}]
 
 
 def test_verify_login_otp_rejects_invalid_email():
