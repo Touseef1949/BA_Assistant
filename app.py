@@ -209,6 +209,7 @@ CARD_CSS = """
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 .stApp { background: var(--bg); color: var(--text); }
+[data-testid="stAppViewContainer"] > .main { padding-top: 2.5rem !important; }
 .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 1080px; }
 
 /* ── Sidebar ── */
@@ -313,6 +314,32 @@ code { white-space: pre-wrap !important; }
 .streamlit-expanderHeader { background: var(--panel-soft); color: var(--text); }
 details summary { color: var(--text); }
 [data-testid="stExpander"] { background: var(--bg); border-color: var(--border); }
+
+/* ── Combobox / Select overrides ── */
+[data-baseweb="select"] {
+  background: var(--bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+[data-baseweb="select"] [data-baseweb="tag"] {
+  background: var(--panel-soft) !important;
+  color: var(--text) !important;
+}
+[data-baseweb="popover"] {
+  background: var(--bg) !important;
+  border-color: var(--border) !important;
+}
+[data-baseweb="popover"] li {
+  color: var(--text) !important;
+  background: var(--bg) !important;
+}
+[data-baseweb="popover"] li:hover {
+  background: var(--panel-soft) !important;
+}
+[data-baseweb="popover"] li[aria-selected="true"] {
+  color: var(--accent) !important;
+  background: rgba(29,185,84,0.08) !important;
+}
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
