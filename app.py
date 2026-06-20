@@ -344,6 +344,7 @@ details summary { color: var(--text); }
 /* ── Universal light-theme overrides (zero dark backgrounds) ── */
 h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text); }
 .stAlert { background: var(--panel-soft) !important; border-color: var(--border) !important; color: var(--text) !important; }
+.stAlertContainer { background: var(--panel-soft) !important; border-color: var(--border) !important; color: var(--text) !important; }
 [data-testid="stMetric"] { background: var(--bg) !important; border-color: var(--border) !important; }
 [data-testid="stMetricValue"] { color: var(--text) !important; }
 [data-testid="stMetricLabel"] { color: var(--muted) !important; }
