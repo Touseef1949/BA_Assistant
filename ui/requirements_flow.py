@@ -45,9 +45,10 @@ def render_template_selector(deps: RequirementsFlowDependencies) -> None:
 
 def render_upload_area(config: Any, deps: RequirementsFlowDependencies) -> None:
     uploaded_file = st.file_uploader(
-        "📎 Upload a document (optional) — PRD, email, whiteboard photo, or PDF",
+        "Drop a file here — PRD, email screenshot, whiteboard photo, or PDF",
         type=["png", "jpg", "jpeg", "pdf"],
-        help="Upload a document to extract requirements from. Works best with clear text/screenshots.",
+        help="Works best with clear text/screenshots.",
+        label_visibility="collapsed",
     )
 
     if not uploaded_file:
