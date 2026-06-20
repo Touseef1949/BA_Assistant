@@ -299,31 +299,37 @@ def verify_login_otp(email: str, otp: str) -> Tuple[bool, str, Dict[str, Any]]:
     sb = _supabase()
     if sb is not None:
         auth = getattr(sb, "auth", None)
-        if auth is None or not hasattr(auth, "verify_otp"):
+        if auth is None:
+            return False, "Supabase Auth is not available.", {}
+        # Supabase email template determines OTP type — try every valid type.
+        # Also try camelCase verifyOtp (JS-style) as a fallback.
+        otp_types = ("email", "magiclink", "signup", "recovery")
+        verify_fn = getattr(auth, "verify_otp", None) or getattr(auth, "verifyOtp", None)
+        if verify_fn is None:
             return False, "Supabase Auth OTP verification is not available.", {}
-        # Supabase email template determines OTP type — try "email" first,
-        # fall back to "magiclink" (default for sign_in_with_otp).
         last_exc = None
-        for verify_type in ("email", "magiclink"):
+        for verify_type in otp_types:
             try:
-                auth.verify_otp({"email": email, "token": otp, "type": verify_type})
+                verify_fn({"email": email, "token": otp, "type": verify_type})
                 user = create_user(email)
                 user = _update_user(email, {"email_verified": True, "verified_at": _now_iso()})
                 return True, "Signed in.", user
             except Exception as exc:
                 last_exc = exc
                 continue
-        # Both types failed — surface the last error
+        # All types failed — surface the last error with Supabase's actual message
         if last_exc is not None:
             exc_type = type(last_exc).__name__
-            exc_msg = str(last_exc)[:200]
+            # AuthApiError/AuthError have .message with Supabase's reason
+            supabase_msg = getattr(last_exc, "message", "") or str(last_exc)[:200]
+            exc_msg = supabase_msg[:200] if supabase_msg else str(last_exc)[:200]
             logger.exception("Supabase OTP verify failed for %s: %s", email, last_exc)
             log_error("supabase_otp_verify_failed", last_exc, {"email_domain": email.split("@")[-1] if "@" in email else ""})
         else:
             exc_type = "Unknown"
             exc_msg = "No OTP types succeeded"
         if not _is_local_dev():
-            return False, f"Invalid or expired verification code. ({exc_type})", {}
+            return False, f"Invalid or expired verification code. ({exc_type}: {exc_msg})", {}
         return False, f"OTP verify error: {exc_msg}", {}
 
     if not _is_local_dev():
