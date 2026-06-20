@@ -12,16 +12,27 @@ def run_app():
     return app_test
 
 
-def test_unauthenticated_report_cta_is_disabled():
+def run_app_authenticated():
+    """Run app with auth already verified — mimics signed-in user."""
+    at = AppTest.from_file(str(APP_PATH))
+    at.session_state["auth_verified"] = True
+    at.session_state["auth_email"] = "verified@example.com"
+    at.session_state["email"] = "verified@example.com"
+    at.run(timeout=15)
+    return at
+
+
+def test_unauthenticated_report_cta_is_hidden():
+    """When not signed in, Generate BA Report button should not render at all."""
     at = run_app()
 
     buttons = [button for button in at.button if button.label == "Generate BA Report"]
-    assert buttons
-    assert buttons[0].disabled is True
-    assert any("Sign in" in info.value for info in at.info)
+    assert not buttons, "Generate BA Report should be hidden when unauthenticated"
+    assert any("Sign in once to unlock" in md.value for md in at.markdown)
 
 
 def test_sign_in_widgets_render():
+    """Sign-in widgets (email + send code) should always render."""
     at = run_app()
 
     text_inputs = [text_input.label for text_input in at.text_input]
@@ -32,7 +43,8 @@ def test_sign_in_widgets_render():
 
 
 def test_requirements_and_template_controls_render():
-    at = run_app()
+    """When authenticated, requirements form renders."""
+    at = run_app_authenticated()
 
     assert any(selectbox.label == "📋 Choose Template" for selectbox in at.selectbox)
     assert any(text_area.label == "Paste requirements" for text_area in at.text_area)

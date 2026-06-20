@@ -317,7 +317,7 @@ header[data-testid="stHeader"] { display: none !important; }
   background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--violet));
 }
 .hero-eyebrow {
-  color: var(--accent); font-size: 0.78rem; font-weight: 800;
+  color: var(--accent) !important; font-size: 0.78rem; font-weight: 800;
   letter-spacing: 0.12em; margin-bottom: 0.5rem; text-transform: uppercase;
 }
 .hero-title {
@@ -1072,8 +1072,11 @@ def main() -> None:
     verified, email, user = render_auth_panel()
     if not verified:
         st.markdown("<p class='small-muted'>Sign in once to unlock BA report generation and saved report history.</p>", unsafe_allow_html=True)
+        render_footer()
+        return
 
-    if verified and not st.session_state.get("_history_loaded_for") == email:
+    # ── Authenticated: full experience ──
+    if not st.session_state.get("_history_loaded_for") == email:
         st.session_state["history"] = load_history(email, safe_secret, log_error)
         st.session_state["_history_loaded_for"] = email
 

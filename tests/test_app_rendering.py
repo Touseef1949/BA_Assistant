@@ -323,7 +323,7 @@ def test_main_clear_button(monkeypatch):
         def __enter__(self): return self
         def __exit__(self, *a): return False
     monkeypatch.setattr(ba_app, "st", fake)
-    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (False, "", {}))
+    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (True, "test@test.com", {}))
     monkeypatch.setattr(ba_app, "sidebar_config", lambda email="", user=None: ba_app.AppConfig("T", "Standard", "m", False, "neutral", False, False, False))
     monkeypatch.setattr(ba_app, "requirements_flow_dependencies", lambda: MagicMock())
     monkeypatch.setattr(ba_app, "render_template_selector", lambda deps: None)
@@ -421,7 +421,8 @@ def test_payment_import_error_warning(monkeypatch):
     fake = FakeSt()
     monkeypatch.setattr(ba_app, "st", fake)
     monkeypatch.setattr(ba_app, "PAYMENT_IMPORT_ERROR", RuntimeError("test error"))
-    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (False, "", {}))
+    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (True, "test@test.com", {}))
+    monkeypatch.setattr(ba_app, "load_history", lambda *a, **kw: [])
     monkeypatch.setattr(ba_app, "sidebar_config", lambda email="", user=None: ba_app.AppConfig("T", "Standard", "m", False, "neutral", False, False, False))
     monkeypatch.setattr(ba_app, "requirements_flow_dependencies", lambda: MagicMock())
     monkeypatch.setattr(ba_app, "render_template_selector", lambda deps: None)
@@ -437,7 +438,8 @@ def test_payment_import_error_none_no_warning(monkeypatch):
     fake = FakeSt()
     monkeypatch.setattr(ba_app, "st", fake)
     monkeypatch.setattr(ba_app, "PAYMENT_IMPORT_ERROR", None)
-    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (False, "", {}))
+    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (True, "test@test.com", {}))
+    monkeypatch.setattr(ba_app, "load_history", lambda *a, **kw: [])
     monkeypatch.setattr(ba_app, "sidebar_config", lambda email="", user=None: ba_app.AppConfig("T", "Standard", "m", False, "neutral", False, False, False))
     monkeypatch.setattr(ba_app, "requirements_flow_dependencies", lambda: MagicMock())
     monkeypatch.setattr(ba_app, "render_template_selector", lambda deps: None)
@@ -601,7 +603,8 @@ def test_main_with_existing_result(monkeypatch):
 
     monkeypatch.setattr(ba_app, "st", fake)
     monkeypatch.setattr(ba_app, "PAYMENT_IMPORT_ERROR", None)
-    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (False, "", {}))
+    monkeypatch.setattr(ba_app, "render_auth_panel", lambda: (True, "test@test.com", {}))
+    monkeypatch.setattr(ba_app, "load_history", lambda *a, **kw: [])
     monkeypatch.setattr(ba_app, "render_header", lambda: None)
     monkeypatch.setattr(ba_app, "sidebar_config", lambda *a, **kw: ba_app.AppConfig("T", "Standard", "m", True, "neutral", False, False, False))
     monkeypatch.setattr(ba_app, "requirements_flow_dependencies", lambda: MagicMock())
