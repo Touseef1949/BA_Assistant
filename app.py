@@ -197,8 +197,8 @@ SAMPLE_REQUIREMENTS = {
 CARD_CSS = """
 <style>
 :root {
-  --accent: #2563eb;
-  --accent-dark: #1d4ed8;
+  --accent: #1DB954;
+  --accent-dark: #169a45;
   --ink: #0f172a;
   --muted: #64748b;
   --border: #dbe3ef;
@@ -255,6 +255,21 @@ button[kind="primary"] {
   font-size: 0.92rem;
 }
 .footer a { color: var(--accent); text-decoration:none; font-weight:700; }
+.auth-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  background: rgba(29,185,84,0.08);
+  border: 1px solid rgba(29,185,84,0.25);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--ink);
+  margin-bottom: 0.6rem;
+}
+.auth-badge-check { color: var(--accent); font-weight: 700; font-size: 1rem; }
+.auth-badge-email { font-weight: 600; color: var(--ink); }
+.auth-badge-plan { color: var(--muted); margin-left: 0.2rem; }
 code { white-space: pre-wrap !important; }
 @media (max-width: 640px) {
   .block-container { padding-top: 1.9rem; padding-left: 0.8rem; padding-right: 0.8rem; }
@@ -642,7 +657,8 @@ def main() -> None:
         st.warning(f"payment.py import fallback active: {PAYMENT_IMPORT_ERROR}")
 
     verified, email, user = render_auth_panel()
-    st.markdown("<p class='small-muted'>Sign in once to unlock BA report generation and saved report history.</p>", unsafe_allow_html=True)
+    if not verified:
+        st.markdown("<p class='small-muted'>Sign in once to unlock BA report generation and saved report history.</p>", unsafe_allow_html=True)
 
     if verified and not st.session_state.get("_history_loaded_for") == email:
         st.session_state["history"] = load_history(email, safe_secret, log_error)

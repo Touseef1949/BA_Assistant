@@ -330,7 +330,17 @@ def render_auth_panel() -> Tuple[bool, str, Dict[str, Any]]:
     if session.get("auth_verified") and is_valid_email(verified_email):
         user = get_user(verified_email) or create_user(verified_email)
         user = _normalize_user(user, verified_email)
-        st.success(f"Signed in as {verified_email}")
+        plan_label = str(user.get("plan") or "free").capitalize()
+        usage_used = int(user.get("analyses_used") or user.get("usage_count") or 0)
+        usage_limit = int(user.get("analyses_limit") or user.get("usage_limit") or 2)
+        badge_html = (
+            '<div class="auth-badge">'
+            '  <span class="auth-badge-check">&#10003;</span>'
+            f'  <span class="auth-badge-email">{verified_email}</span>'
+            f'  <span class="auth-badge-plan">{plan_label} &middot; {usage_used}/{usage_limit} reports</span>'
+            '</div>'
+        )
+        st.markdown(badge_html, unsafe_allow_html=True)
         return True, verified_email, user
 
     st.markdown("### Sign in to generate reports")

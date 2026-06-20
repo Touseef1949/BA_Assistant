@@ -49,4 +49,4 @@ def test_authenticated_state_reveals_enabled_core_workflow(monkeypatch):
     buttons = [button for button in at.button if button.label == "Generate BA Report"]
     assert buttons
     assert buttons[0].disabled is False
-    assert any("Signed in as verified@example.com" in success.value for success in at.success)
+    assert any("verified@example.com" in md.value for md in at.markdown)
