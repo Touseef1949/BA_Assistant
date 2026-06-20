@@ -240,6 +240,41 @@ def test_verify_login_otp_supabase_success(monkeypatch):
     assert calls == [{"email": "user@example.com", "token": "123456", "type": "email"}]
 
 
+def test_update_user_retries_without_email_verified_when_column_missing(monkeypatch):
+    email = "user@example.com"
+
+    class FakeResult:
+        def __init__(self, data):
+            self.data = data
+
+    class FakeTable:
+        def __init__(self):
+            self.payloads = []
+            self.current = None
+        def update(self, fields):
+            self.current = dict(fields)
+            self.payloads.append(dict(fields))
+            return self
+        def eq(self, key, value):
+            return self
+        def execute(self):
+            if "email_verified" in self.current:
+                raise Exception("Could not find the 'email_verified' column of 'users' in the schema cache")
+            return FakeResult([{"email": email, "verified_at": self.current.get("verified_at"), "plan": "free", "status": "active", "analyses_used": 0, "analyses_limit": 2, "usage_count": 0, "usage_limit": 2}])
+
+    fake_table = FakeTable()
+    fake_sb = SimpleNamespace(table=lambda name: fake_table)
+    monkeypatch.setattr(payment, "_supabase", lambda: fake_sb)
+    monkeypatch.setattr(payment, "log_error", lambda *args, **kwargs: None)
+
+    user = payment._update_user(email, {"email_verified": True, "verified_at": "2026-06-20T00:00:00+00:00"})
+
+    assert len(fake_table.payloads) == 2
+    assert "email_verified" in fake_table.payloads[0]
+    assert "email_verified" not in fake_table.payloads[1]
+    assert user["email_verified"] is True
+
+
 def test_local_otp_verification_marks_user_verified(monkeypatch):
     email = "otp@example.com"
     otp = "123456"

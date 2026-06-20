@@ -108,7 +108,6 @@ def _default_user(email: str) -> Dict[str, Any]:
         "analyses_limit": limit,
         "usage_count": 0,
         "usage_limit": limit,
-        "email_verified": False,
         "created_at": _now_iso(),
         "updated_at": _now_iso(),
     }
@@ -212,6 +211,18 @@ def _update_user(email: str, fields: Dict[str, Any]) -> Dict[str, Any]:
             if rows:
                 return _normalize_user(rows[0], email)
         except Exception as exc:
+            if "email_verified" in fields and "email_verified" in str(exc):
+                compat_fields = {k: v for k, v in fields.items() if k != "email_verified"}
+                try:
+                    result = sb.table(USERS_TABLE).update(compat_fields).eq("email", email).execute()
+                    rows = getattr(result, "data", None) or []
+                    if rows:
+                        return _normalize_user(rows[0], email)
+                except Exception as compat_exc:
+                    logger.exception("Supabase _update_user compatibility retry failed for %s: %s", email, compat_exc)
+                    log_error("supabase_update_user_failed", compat_exc, {"email_domain": email.split("@")[-1] if "@" in email else ""})
+                    if not _is_local_dev():
+                        raise
             logger.exception("Supabase _update_user failed for %s: %s", email, exc)
             log_error("supabase_update_user_failed", exc, {"email_domain": email.split("@")[-1] if "@" in email else ""})
             if not _is_local_dev():
