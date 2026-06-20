@@ -523,6 +523,39 @@ p { text-wrap: pretty; }
 }
 .stCaption, [data-testid="stCaptionContainer"] { color: var(--muted-2) !important; }
 
+/* ── Upload zone ── */
+.upload-zone {
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-2);
+  padding: 1.2rem 1.4rem;
+  margin: 0.8rem 0;
+}
+.upload-zone-label {
+  font-size: 0.88rem; font-weight: 600; color: var(--text) !important; margin-bottom: 0.5rem;
+}
+.upload-zone-hint {
+  font-size: 0.8rem; color: var(--muted-2) !important; margin-bottom: 0.8rem;
+}
+.upload-zone [data-testid="stFileUploader"] {
+  background: var(--bg) !important;
+}
+.upload-zone [data-testid="stFileUploader"] section {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  background: var(--bg) !important;
+}
+.upload-zone [data-testid="stFileUploader"] span, 
+.upload-zone [data-testid="stFileUploader"] p,
+.upload-zone [data-testid="stFileUploader"] label {
+  color: var(--text) !important;
+}
+.upload-zone button[kind="secondary"] {
+  background: var(--bg) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
 /* ── Recent reports in sidebar ── */
 .recent-analysis-item {
   background: var(--panel-soft) !important; border: 1px solid var(--border);
@@ -1057,8 +1090,14 @@ def main() -> None:
         label_visibility="collapsed",
     )
 
-    with st.expander("Upload or extract from a document", expanded=False):
-        render_upload_area(config, flow_deps)
+    st.markdown(
+        '<p class="upload-zone-label">📎 Upload a document (optional)</p>'
+        '<p class="upload-zone-hint">Drag a PRD, email screenshot, whiteboard photo, or PDF — we\'ll extract the requirements for you.</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="upload-zone">', unsafe_allow_html=True)
+    render_upload_area(config, flow_deps)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     render_prompt_preview(config, requirements_text, flow_deps)
 
