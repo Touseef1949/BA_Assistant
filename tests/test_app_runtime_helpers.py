@@ -184,14 +184,14 @@ def test_requirements_flow_dependencies_and_sidebar_config(monkeypatch):
             self.captions = []
             self.markdowns = []
 
-        def markdown(self, msg):
-            self.markdowns.append(msg)
+        def markdown(self, msg, unsafe_allow_html=False):
+            self.markdowns.append(str(msg))
         def success(self, msg):
-            self.markdowns.append(msg)
+            self.markdowns.append(str(msg))
         def info(self, msg):
-            self.markdowns.append(msg)
+            self.markdowns.append(str(msg))
         def caption(self, msg):
-            self.captions.append(msg)
+            self.captions.append(str(msg))
         def text_input(self, label, key=None):
             return "Project X"
         def radio(self, label, options, index=0, key=None):
@@ -217,4 +217,5 @@ def test_requirements_flow_dependencies_and_sidebar_config(monkeypatch):
     config = app.sidebar_config("person@example.com", {"plan": "free", "analyses_used": 1, "analyses_limit": 2})
     assert config.project_name == "Project X"
     assert config.analysis_type == "Standard"
-    assert any("Loan Portal" in c for c in fake_st.captions)
+    # Recent reports now rendered via markdown (not caption) with HTML cards
+    assert any("Loan Portal" in m for m in fake_st.markdowns)
