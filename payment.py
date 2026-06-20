@@ -273,8 +273,8 @@ def verify_login_otp(email: str, otp: str) -> Tuple[bool, str, Dict[str, Any]]:
     otp = (otp or "").strip()
     if not is_valid_email(email):
         return False, "Enter a valid email address.", {}
-    if not re.fullmatch(r"\d{6}", otp):
-        return False, "Enter the 6-digit verification code.", {}
+    if not re.fullmatch(r"\d{6,8}", otp):
+        return False, "Enter the verification code from your email.", {}
 
     sb = _supabase()
     if sb is not None:
@@ -341,8 +341,8 @@ def render_auth_panel() -> Tuple[bool, str, Dict[str, Any]]:
             st.error(message)
 
     if session.get("auth_code_sent") and session.get("auth_code_sent_email") == clean_email:
-        st.caption("Enter the 6-digit code from your email to continue.")
-        code = st.text_input("6-digit code", value="", max_chars=6, key="auth_otp_code")
+        st.caption("Enter the verification code from your email to continue.")
+        code = st.text_input("Verification code", value="", max_chars=8, key="auth_otp_code")
         if st.button("Verify & continue", type="primary", use_container_width=True, key="auth_verify_code"):
             ok, message, user = verify_login_otp(clean_email, code)
             if ok:

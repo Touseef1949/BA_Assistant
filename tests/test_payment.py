@@ -132,8 +132,30 @@ def test_verify_login_otp_rejects_invalid_format():
     ok, message, user = payment.verify_login_otp("user@example.com", "abc")
 
     assert ok is False
-    assert "6-digit" in message
+    assert "verification code" in message
     assert user == {}
+
+
+def test_verify_login_otp_accepts_8_digit_local_code(monkeypatch):
+    email = "user@example.com"
+    otp = "83844120"
+    otps = {
+        email: {
+            "digest": payment._otp_digest(email, otp),
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat(),
+        }
+    }
+    monkeypatch.setenv("BA_ASSISTANT_LOCAL_DEV", "1")
+    monkeypatch.setattr(payment, "_supabase", lambda: None)
+    monkeypatch.setattr(payment, "_local_otps", lambda: otps)
+    monkeypatch.setattr(payment, "create_user", lambda addr: {"email": addr})
+    monkeypatch.setattr(payment, "_update_user", lambda addr, fields: {"email": addr, **fields})
+
+    ok, message, user = payment.verify_login_otp(email, otp)
+
+    assert ok is True
+    assert message == "Signed in."
+    assert user["email"] == email
 
 
 def test_verify_login_otp_requires_config_in_production(monkeypatch):
