@@ -108,7 +108,7 @@ st.set_page_config(
     page_title="BA Assistant",
     page_icon="📋",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 load_dotenv()
@@ -196,20 +196,40 @@ SAMPLE_REQUIREMENTS = {
 
 CARD_CSS = """
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 :root {
   --accent: #1DB954;
   --accent-dark: #169a45;
+  --accent-light: #1ED760;
   --text: #1A1A1A;
   --muted: #4A4A4A;
   --muted-2: #8A8A8A;
   --border: #E8E8E8;
+  --border-strong: #D0D0D0;
   --bg: #FFFFFF;
   --bg-2: #FAFAFA;
   --panel-soft: #F5F5F5;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --panel-softer: #F0F0F0;
+  /* Tinted shadows — carry green hue instead of pure black (Taste: colored shadows) */
+  --shadow: 0 1px 3px rgba(29, 185, 84, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 4px 12px rgba(29, 185, 84, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --radius-xl: 20px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+  --amber: #FFA000;
+  --red: #E53935;
+  --blue: #2563EB;
+  --violet: #7C3AED;
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
+
+* { font-family: var(--font-sans) !important; }
+html { scroll-behavior: smooth; }
+
 .stApp { background: var(--bg); color: var(--text); }
-[data-testid="stAppViewContainer"] > .main { padding-top: 2.5rem !important; }
+/* Completely hide Streamlit header bar */
+header[data-testid="stHeader"] { display: none !important; }
 .block-container { padding-top: 1rem; padding-bottom: 2rem; max-width: 1080px; }
 
 /* ── Sidebar ── */
@@ -233,6 +253,41 @@ CARD_CSS = """
 [data-testid="stSidebarContent"]::-webkit-scrollbar-track { background: var(--panel-soft); }
 [data-testid="stSidebarContent"]::-webkit-scrollbar-thumb { background: rgba(29,185,84,0.3); }
 
+/* ── Sidebar brand card ── */
+.sidebar-brand {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  padding: 1rem;
+  margin: 0.35rem 0 1rem;
+  box-shadow: var(--shadow);
+}
+.sidebar-brand .logo {
+  align-items: center;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: inline-flex;
+  font-size: 1.15rem;
+  height: 2.3rem;
+  justify-content: center;
+  margin-bottom: 0.65rem;
+  width: 2.3rem;
+}
+.sidebar-brand h2 { font-size: 1.05rem; margin: 0 0 0.25rem; line-height: 1.15; }
+.sidebar-brand p { color: var(--muted) !important; font-size: 0.86rem; line-height: 1.45; margin: 0; }
+.sidebar-section-title {
+  color: var(--text) !important; font-size: 0.78rem; font-weight: 800;
+  letter-spacing: 0.08em; margin: 1rem 0 0.45rem; text-transform: uppercase;
+}
+.sidebar-help-card {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.78rem; margin-top: 0.8rem;
+}
+.sidebar-help-card p { color: var(--muted) !important; font-size: 0.84rem; line-height: 1.45; margin: 0; }
+
 /* ── Input fields ── */
 .stTextInput input, .stTextArea textarea {
   background: var(--bg) !important;
@@ -244,48 +299,140 @@ CARD_CSS = """
   box-shadow: 0 0 0 3px rgba(29,185,84,0.12) !important;
 }
 
-/* ── App layout classes ── */
+/* ── Hero / Page header ── */
 .hero-card {
-  padding: 0.35rem 0 0.9rem 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+  padding: 1.6rem 1.8rem;
+  margin-bottom: 1.2rem;
+}
+.hero-card::after {
+  content: "";
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--violet));
+}
+.hero-eyebrow {
+  color: var(--accent); font-size: 0.78rem; font-weight: 800;
+  letter-spacing: 0.12em; margin-bottom: 0.5rem; text-transform: uppercase;
 }
 .hero-title {
-  font-size: 2.1rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  color: var(--text);
-  margin-bottom: 0.2rem;
+  font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900;
+  letter-spacing: -0.02em; line-height: 1.1;
+  color: var(--text); margin-bottom: 0.4rem;
 }
-.hero-subtitle { color: var(--muted); font-size: 1.02rem; margin: 0; max-width: 760px; }
+.hero-subtitle { color: var(--muted); font-size: 1.02rem; margin: 0; max-width: 760px; line-height: 1.55; }
+.hero-chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.hero-chip-row span {
+  background: var(--panel-softer); border: 1px solid var(--border);
+  border-radius: 999px; color: var(--muted) !important;
+  font-size: 0.78rem; padding: 0.35rem 0.7rem;
+}
+
+/* ── Workflow steps ── */
+.hero-workflow-row {
+  display: flex; gap: 0.6rem; flex-wrap: wrap;
+  margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border);
+}
+.hero-workflow-step {
+  background: var(--panel-soft); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 0.5rem 0.75rem;
+  font-size: 0.82rem; color: var(--text) !important; display: flex; align-items: center; gap: 0.4rem;
+}
+.hero-workflow-step em {
+  background: rgba(29,185,84,0.10); color: var(--accent) !important;
+  border: 1px solid rgba(29,185,84,0.20); border-radius: 50%;
+  width: 1.4rem; height: 1.4rem; display: inline-flex;
+  align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; font-style: normal;
+}
+
+/* ── Cards ── */
 .metric-card, .soft-card {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   background: var(--bg);
   box-shadow: var(--shadow);
 }
 button[kind="primary"] {
-  border-radius: 8px !important;
+  border-radius: var(--radius-sm) !important;
   background: var(--accent) !important;
   border-color: var(--accent) !important;
   color: #FFFFFF !important;
 }
+button[kind="primary"]:hover { background: var(--accent-light) !important; }
 .small-muted { color: var(--muted); font-size: 0.88rem; }
+
+/* ── Auth shell ── */
 .auth-shell {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 1rem;
   background: var(--bg-2);
   margin-bottom: 1rem;
 }
-.workflow-band {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1rem;
-  background: var(--bg);
-  box-shadow: var(--shadow);
+.auth-badge {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  padding: 0.4rem 0.9rem;
+  background: rgba(29,185,84,0.08);
+  border: 1px solid rgba(29,185,84,0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem; color: var(--text); margin-bottom: 0.6rem;
 }
+.auth-badge-check { color: var(--accent); font-weight: 700; font-size: 1rem; }
+.auth-badge-email { font-weight: 600; color: var(--text); }
+.auth-badge-plan { color: var(--muted); margin-left: 0.2rem; }
+
+/* ── Sample report preview ── */
+.sample-report-preview {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg); box-shadow: var(--shadow);
+  padding: 1.4rem; margin-top: 1rem;
+}
+.sample-report-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 1rem;
+}
+.sample-kicker {
+  color: var(--accent); font-size: 0.75rem; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.sample-report-head h3 { font-size: 1.15rem; margin: 0.3rem 0 0; color: var(--text) !important; }
+.sample-report-head p { color: var(--muted) !important; font-size: 0.85rem; margin: 0.3rem 0 0; }
+.sample-verdict-card {
+  background: rgba(29,185,84,0.08); border: 1px solid rgba(29,185,84,0.20);
+  border-radius: var(--radius-md); padding: 0.6rem 1rem;
+  text-align: center; min-width: 100px;
+}
+.sample-verdict-card span { display: block; font-size: 0.72rem; color: var(--muted) !important; text-transform: uppercase; letter-spacing: 0.08em; }
+.sample-verdict-card strong { font-size: 1.3rem; color: var(--accent) !important; display: block; }
+.sample-verdict-card small { font-size: 0.72rem; color: var(--muted-2) !important; }
+.sample-report-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem;
+}
+.sample-report-grid article {
+  background: var(--panel-soft); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 0.8rem;
+}
+.sample-report-grid article span { display: block; font-size: 0.74rem; color: var(--muted-2) !important; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.3rem; }
+.sample-report-grid article strong { font-size: 0.9rem; color: var(--text) !important; line-height: 1.4; }
+
+/* ── Analysis progress ── */
+.analysis-progress-shell {
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--bg); box-shadow: var(--shadow);
+  padding: 1.2rem 1.5rem; margin: 0.5rem 0;
+}
+.analysis-progress-shell .ap-label { font-size: 0.92rem; font-weight: 700; color: var(--text) !important; margin-bottom: 0.3rem; }
+.analysis-progress-shell .ap-sub { font-size: 0.82rem; color: var(--muted) !important; }
+.analysis-wit { font-size: 0.86rem; color: var(--muted) !important; font-style: italic; margin: 0.4rem 0; }
+
+/* ── Footer ── */
 .footer {
   text-align:center;
   color: var(--muted);
@@ -293,21 +440,6 @@ button[kind="primary"] {
   font-size: 0.92rem;
 }
 .footer a { color: var(--accent); text-decoration:none; font-weight:700; }
-.auth-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0.9rem;
-  background: rgba(29,185,84,0.08);
-  border: 1px solid rgba(29,185,84,0.25);
-  border-radius: 6px;
-  font-size: 0.88rem;
-  color: var(--text);
-  margin-bottom: 0.6rem;
-}
-.auth-badge-check { color: var(--accent); font-weight: 700; font-size: 1rem; }
-.auth-badge-email { font-weight: 600; color: var(--text); }
-.auth-badge-plan { color: var(--muted); margin-left: 0.2rem; }
 code { white-space: pre-wrap !important; }
 
 /* ── Expanders ── */
@@ -359,21 +491,29 @@ h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text) !important;
 [data-testid="stTooltip"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
 .stButton button {
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: var(--radius-sm) !important;
   transition: all 0.2s !important;
   background: var(--bg) !important;
   color: var(--text) !important;
 }
 .stButton button:hover { border-color: var(--accent) !important; background: rgba(29,185,84,0.08) !important; }
+.stButton button:active { transform: scale(0.98) !important; }
+button[kind="primary"]:hover { background: var(--accent-light) !important; }
+button[kind="primary"]:active { transform: scale(0.98) !important; }
+h1, h2, h3, h4 { text-wrap: balance; }
+p { text-wrap: pretty; }
+/* Kill Streamlit's default dark radio/checkbox/toggle backgrounds — override BaseWeb emotion classes */
+.stRadio div, .stCheckbox div, .stToggle div { background: var(--bg) !important; }
+.stRadio [role="radio"][aria-checked="true"] div { background: var(--accent) !important; }
 [data-testid="stBaseButton-secondary"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
 [data-testid="stSidebar"] [data-testid="stBaseButton-secondary"],
 [data-testid="stSidebar"] button[kind="secondary"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
 [data-testid="stSidebar"] button[kind="primary"] { background: var(--accent) !important; border-color: var(--accent) !important; color: #FFFFFF !important; }
-[data-testid="stSidebar"] button[kind="primary"]:hover { background: #1ED760 !important; }
+[data-testid="stSidebar"] button[kind="primary"]:hover { background: var(--accent-light) !important; }
 [data-testid="stSidebar"] [data-testid="stAlert"] { background: var(--panel-soft) !important; border-color: var(--border) !important; }
 [data-baseweb="input"] {
   border: 1px solid var(--border) !important;
-  border-radius: 8px !important;
+  border-radius: var(--radius-sm) !important;
   background: var(--bg) !important;
   color: var(--text) !important;
 }
@@ -383,12 +523,22 @@ h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text) !important;
 }
 .stCaption, [data-testid="stCaptionContainer"] { color: var(--muted-2) !important; }
 
+/* ── Recent reports in sidebar ── */
+.recent-analysis-item {
+  background: var(--panel-soft) !important; border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 0.6rem 0.7rem; margin: 0.35rem 0;
+}
+.recent-analysis-item strong { color: var(--text) !important; font-size: 0.88rem; display: block; }
+.recent-analysis-item span { color: var(--muted) !important; font-size: 0.76rem; }
+
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .block-container { padding-top: 1.9rem; padding-left: 0.8rem; padding-right: 0.8rem; }
   .hero-title { font-size: 1.55rem; }
   .hero-subtitle { font-size: 0.94rem; }
+  .hero-card { padding: 1.2rem 1rem; }
   [data-testid="column"] { width: 100% !important; flex: 1 1 100% !important; }
+  .sample-report-grid { grid-template-columns: 1fr; }
 }
 </style>
 """
@@ -602,6 +752,16 @@ def reset_interactive() -> None:
     st.session_state["interactive_answers"] = {}
 
 
+ROTATING_WIT = [
+    "Good requirements analysis takes time — we're structuring your scope, stories, and risks.",
+    "The best BAs ask the right questions before writing anything. Almost there.",
+    "Turning rough notes into a polished BA document. Precision over speed.",
+    "Quality requirements separate great products from mediocre ones. Stay with us.",
+    "Building your report — clarity beats completeness, every single time.",
+    "Deep work in progress. Every second here saves you hours of rework.",
+]
+
+
 def render_footer() -> None:
     st.markdown(
         "<p class='footer'>Built by <a href='https://touseefshaik.com' target='_blank'>Touseef Shaik</a> · touseefshaik.com</p>",
@@ -613,9 +773,68 @@ def render_header() -> None:
     st.markdown(
         """
         <div class="hero-card">
+          <div class="hero-eyebrow">AI-powered business analysis</div>
           <div class="hero-title">BA Assistant</div>
-          <p class="hero-subtitle">Paste rough requirements and generate a structured BA report with scope, user stories, risks, architecture notes, and diagrams.</p>
+          <p class="hero-subtitle">Paste rough requirements and generate a structured BA report with scope, user stories, risks, architecture notes, and Mermaid diagrams — in minutes.</p>
+          <div class="hero-chip-row">
+            <span>&#128203; Scope &amp; requirements</span>
+            <span>&#128100; User stories</span>
+            <span>&#9888;&#65039; Risk analysis</span>
+            <span>&#128736;&#65039; Architecture notes</span>
+            <span>&#128202; Mermaid diagrams</span>
+          </div>
+          <div class="hero-workflow-row">
+            <div class="hero-workflow-step"><em>1</em> Paste requirements</div>
+            <div class="hero-workflow-step"><em>2</em> AI generates report</div>
+            <div class="hero-workflow-step"><em>3</em> Download MD / PDF</div>
+          </div>
         </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_analysis_progress(active_label: str = "Analyzing") -> None:
+    """Render a progress shell card similar to SRA's analysis progress."""
+    st.markdown(
+        f"""
+        <div class="analysis-progress-shell">
+            <div class="ap-label">&#9881;&#65039; {html.escape(active_label)}</div>
+            <div class="ap-sub">Multi-agent analysis in progress — this usually takes 30-90 seconds.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_sample_report_preview() -> None:
+    """Show a sample report preview card when no report has been generated yet."""
+    st.markdown(
+        """
+        <section class="sample-report-preview" aria-label="Sample report preview">
+            <div class="sample-report-head">
+                <div>
+                    <span class="sample-kicker">Sample report</span>
+                    <h3>Loan Origination Portal</h3>
+                    <p>Preview the kind of structured BA report generated after sign-in.</p>
+                </div>
+                <div class="sample-verdict-card">
+                    <span>Report type</span>
+                    <strong>Standard</strong>
+                    <small>~90 seconds</small>
+                </div>
+            </div>
+            <div class="sample-report-grid">
+                <article>
+                    <span>Scope</span>
+                    <strong>Digital loan origination with KYC, credit assessment, and disbursal integration.</strong>
+                </article>
+                <article>
+                    <span>Key risk</span>
+                    <strong>RBI digital lending compliance, data localization, and consent framework.</strong>
+                </article>
+            </div>
+        </section>
         """,
         unsafe_allow_html=True,
     )
@@ -623,23 +842,53 @@ def render_header() -> None:
 
 def sidebar_config(email: str = "", user: Optional[Dict[str, Any]] = None) -> AppConfig:
     with st.sidebar:
-        st.markdown("### BA Assistant")
+        # ── Brand card ──
+        st.markdown(
+            """
+            <div class="sidebar-brand">
+                <div class="logo">&#128203;</div>
+                <h2>BA Assistant</h2>
+                <p>AI-assisted business analysis with structured reports, user stories, risks, and diagrams.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # ── Access / Auth status ──
         if email:
             user = user or get_user(email) or create_user(email)
             plan = str(user.get("plan", "free")).title()
             used = user.get("analyses_used", user.get("usage_count", 0))
             limit = user.get("analyses_limit", user.get("usage_limit", 2))
-            st.success("Verified")
-            st.caption(f"{email} · {plan} · {used}/{limit if int(limit) < 10_000 else 'Unlimited'}")
+            limit_display = f"{used}/{limit}" if int(limit) < 10_000 else "Unlimited"
+            st.markdown(
+                f"""
+                <div class="auth-badge">
+                    <span class="auth-badge-check">&#10003;</span>
+                    <span class="auth-badge-email">{html.escape(email)}</span>
+                    <span class="auth-badge-plan">· {html.escape(plan)} · {limit_display}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
             render_pricing(email, user)
             if st.button("Sign out", use_container_width=True):
                 sign_out()
                 st.rerun()
         else:
-            st.info("Sign in from the main page to generate reports.")
+            st.markdown(
+                """
+                <div class="sidebar-help-card">
+                    <p><strong>Not signed in.</strong> Sign in from the main page to generate reports and save history.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
         st.markdown("---")
-        st.markdown("### Settings")
+
+        # ── Settings ──
+        st.markdown('<div class="sidebar-section-title">Settings</div>', unsafe_allow_html=True)
         project_name = st.text_input("Project Name", key="project_name")
         visible_modes = ["Standard", "Interactive (Q&A)"]
         mode_index = visible_modes.index(st.session_state.get("analysis_type", "Standard")) if st.session_state.get("analysis_type", "Standard") in visible_modes else 0
@@ -657,7 +906,9 @@ def sidebar_config(email: str = "", user: Optional[Dict[str, Any]] = None) -> Ap
             show_member_responses = st.toggle("Show member responses", value=False)
 
         st.markdown("---")
-        st.markdown("### ⚡ Quick Actions")
+
+        # ── Quick Actions ──
+        st.markdown('<div class="sidebar-section-title">&#9889; Quick Actions</div>', unsafe_allow_html=True)
         for label, sample in SAMPLE_REQUIREMENTS.items():
             if st.button(label, use_container_width=True):
                 st.session_state["requirements_area"] = sample
@@ -665,16 +916,32 @@ def sidebar_config(email: str = "", user: Optional[Dict[str, Any]] = None) -> Ap
                 reset_interactive()
                 st.rerun()
 
-        st.markdown("---")
+        # ── Recent reports ──
         history = st.session_state.get("history", [])
         if history:
             st.markdown("---")
-            st.markdown("### Recent reports")
+            st.markdown('<div class="sidebar-section-title">Recent reports</div>', unsafe_allow_html=True)
             for item in history[:5]:
-                st.caption(f"{item['time']} · {item['project']}")
+                st.markdown(
+                    f"""
+                    <div class="recent-analysis-item">
+                        <strong>{html.escape(item.get('project', 'Untitled'))}</strong>
+                        <span>{html.escape(item.get('time', ''))} · {html.escape(item.get('type', ''))}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
 
-        st.markdown("---")
-        st.caption("Privacy note: requirements are sent to configured model providers only when you run analysis. Image extraction uses Gemini only when you explicitly upload an image and click extract.")
+        # ── Help / Privacy ──
+        st.markdown(
+            """
+            <div class="sidebar-help-card">
+                <p><strong>How it works:</strong> Free tier includes 2 standard reports. Upgrade for Interactive Q&amp;A, Deep Team mode, and unlimited history.</p>
+                <p style="margin-top:0.5rem; font-size:0.78rem; opacity:0.7;">Privacy: requirements are sent to model providers only when you run analysis. Image extraction uses Gemini only on explicit upload.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         render_footer()
 
     config = AppConfig(
@@ -827,6 +1094,14 @@ def main() -> None:
         elif not require_runtime_dependencies(False) or not require_api_keys(False):
             pass
         else:
+            progress_shell = st.empty()
+            wit_placeholder = st.empty()
+            with progress_shell.container():
+                render_analysis_progress("Generating BA report")
+            wit_placeholder.markdown(
+                f'<p class="analysis-wit">&#128161; {ROTATING_WIT[0]}</p>',
+                unsafe_allow_html=True,
+            )
             placeholder = st.empty()
             with st.spinner("Generating BA report..."):
                 analyzer = RequirementAnalyzer(config.model_id, config.show_member_responses, enable_vision=False)
@@ -834,6 +1109,8 @@ def main() -> None:
                     lambda stream: analyzer.run_analysis(requirements_text, config.project_name, config.analysis_type, stream=stream),
                     placeholder,
                 )
+            progress_shell.empty()
+            wit_placeholder.empty()
             st.session_state["last_result"] = result
             st.session_state["last_mermaid"] = extract_mermaid_code(result)
             st.session_state["history"] = save_history(
@@ -897,7 +1174,7 @@ def main() -> None:
                         key=f"history_download_{item['time']}_{item['project']}",
                     )
     else:
-        st.info("Your generated report will appear below the requirements form.")
+        render_sample_report_preview()
 
     render_footer()
 
