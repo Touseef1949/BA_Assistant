@@ -341,6 +341,36 @@ details summary { color: var(--text); }
   background: rgba(29,185,84,0.08) !important;
 }
 
+/* ── Universal light-theme overrides (zero dark backgrounds) ── */
+h1, h2, h3, h4, h5, h6, p, li, label, span, div { color: var(--text); }
+.stAlert { background: var(--panel-soft) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-testid="stMetric"] { background: var(--bg) !important; border-color: var(--border) !important; }
+[data-testid="stMetricValue"] { color: var(--text) !important; }
+[data-testid="stMetricLabel"] { color: var(--muted) !important; }
+[data-testid="stTooltip"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
+.stButton button {
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s !important;
+}
+.stButton button:hover { border-color: var(--accent) !important; background: rgba(29,185,84,0.08) !important; }
+[data-testid="stBaseButton-secondary"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-testid="stSidebar"] [data-testid="stBaseButton-secondary"],
+[data-testid="stSidebar"] button[kind="secondary"] { background: var(--bg) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-testid="stSidebar"] button[kind="primary"] { background: var(--accent) !important; border-color: var(--accent) !important; color: #FFFFFF !important; }
+[data-testid="stSidebar"] button[kind="primary"]:hover { background: #1ED760 !important; }
+[data-testid="stSidebar"] [data-testid="stAlert"] { background: var(--panel-soft) !important; border-color: var(--border) !important; }
+[data-baseweb="input"] {
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  background: var(--bg) !important;
+}
+[data-baseweb="input"]:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 1px var(--accent) !important;
+}
+.stCaption, [data-testid="stCaptionContainer"] { color: var(--muted-2) !important; }
+
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .block-container { padding-top: 1.9rem; padding-left: 0.8rem; padding-right: 0.8rem; }
