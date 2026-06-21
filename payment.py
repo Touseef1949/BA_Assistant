@@ -43,6 +43,7 @@ def _is_local_dev() -> bool:
 
 
 FREE_USAGE_LIMIT = 2
+REQUIRE_AUTH = False
 PAID_USAGE_LIMIT = 10_000
 USERS_TABLE = "users"
 OTP_TTL_MINUTES = 10
@@ -350,6 +351,36 @@ def verify_login_otp(email: str, otp: str) -> Tuple[bool, str, Dict[str, Any]]:
 
 def render_auth_panel() -> Tuple[bool, str, Dict[str, Any]]:
     """Render main-content OTP auth and return (verified, email, user)."""
+    if not REQUIRE_AUTH:
+        beta_email = "beta@ba-assistant.local"
+        user = _normalize_user(
+            {
+                "email": beta_email,
+                "plan": "beta",
+                "status": "active",
+                "analyses_used": 0,
+                "analyses_limit": PAID_USAGE_LIMIT,
+                "usage_count": 0,
+                "usage_limit": PAID_USAGE_LIMIT,
+                "email_verified": True,
+                "verified_at": _now_iso(),
+            },
+            beta_email,
+        )
+        st.session_state["auth_verified"] = True
+        st.session_state["auth_email"] = beta_email
+        st.session_state["email"] = beta_email
+        st.markdown(
+            """
+            <div class="auth-badge" style="border-color:#16a34a;background:#dcfce7;color:#166534;">
+                <span class="auth-badge-check">&#10003;</span>
+                <span class="auth-badge-email">Free during beta</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return True, beta_email, user
+
     session = st.session_state
     session.setdefault("auth_code_sent", False)
     session.setdefault("auth_code_sent_email", "")
@@ -422,6 +453,24 @@ def gate_analysis(email: str, consume_usage: bool = True) -> Tuple[bool, str, Di
     Free users get FREE_USAGE_LIMIT analyses. Paid/active users are effectively
     unlimited for normal SaaS usage.
     """
+    if not REQUIRE_AUTH:
+        beta_email = (email or "beta@ba-assistant.local").strip().lower()
+        user = _normalize_user(
+            {
+                "email": beta_email,
+                "plan": "beta",
+                "status": "active",
+                "analyses_used": 0,
+                "analyses_limit": PAID_USAGE_LIMIT,
+                "usage_count": 0,
+                "usage_limit": PAID_USAGE_LIMIT,
+                "email_verified": True,
+                "verified_at": _now_iso(),
+            },
+            beta_email,
+        )
+        return True, "Free during beta.", user
+
     email = email.strip().lower()
     if not is_valid_email(email):
         return False, "Sign in with a verified email before running analysis.", {}
@@ -482,6 +531,9 @@ def create_razorpay_order(email: str, amount_in_inr: int = 499, notes: Optional[
 
 
 def render_pricing(email: str, user: Optional[Dict[str, Any]] = None) -> None:
+    if not REQUIRE_AUTH:
+        return
+
     user = user or get_user(email) or create_user(email)
     plan = str(user.get("plan", "free")).title()
     usage = int(user.get("analyses_used") or user.get("usage_count") or 0)

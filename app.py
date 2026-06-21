@@ -69,7 +69,7 @@ except Exception:  # pragma: no cover - handled in UI
     pdfplumber = None
 
 try:
-    from payment import create_user, gate_analysis, get_user, render_auth_panel, render_pricing, sign_out
+    from payment import REQUIRE_AUTH, create_user, gate_analysis, get_user, render_auth_panel, render_pricing, sign_out
 except Exception as exc:  # pragma: no cover
     PAYMENT_IMPORT_ERROR = exc
 
@@ -912,7 +912,7 @@ def sidebar_config(email: str = "", user: Optional[Dict[str, Any]] = None) -> Ap
             st.markdown(
                 """
                 <div class="sidebar-help-card">
-                    <p><strong>Not signed in.</strong> Sign in from the main page to generate reports and save history.</p>
+                    <p><strong>Free during beta.</strong> No login required to generate reports and save history.</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -969,7 +969,7 @@ def sidebar_config(email: str = "", user: Optional[Dict[str, Any]] = None) -> Ap
         st.markdown(
             """
             <div class="sidebar-help-card">
-                <p><strong>How it works:</strong> Free tier includes 2 standard reports. Upgrade for Interactive Q&amp;A, Deep Team mode, and unlimited history.</p>
+                <p><strong>How it works:</strong> Free during beta. No login required for report generation, Interactive Q&amp;A, Deep Team mode, and history.</p>
                 <p style="margin-top:0.5rem; font-size:0.78rem; opacity:0.7;">Privacy: requirements are sent to model providers only when you run analysis. Image extraction uses Gemini only on explicit upload.</p>
             </div>
             """,
@@ -991,6 +991,12 @@ def sidebar_config(email: str = "", user: Optional[Dict[str, Any]] = None) -> Ap
 
 
 def run_paid_gate(email: str, consume_usage: bool = True) -> bool:
+    if not REQUIRE_AUTH:
+        # Beta mode: always allow, no email required
+        allowed, message, _user = gate_analysis(email or "beta@ba-assistant.local", consume_usage=consume_usage)
+        if message:
+            st.caption(message)
+        return True
     if not email:
         st.error("Sign in with a verified email before running analysis.")
         return False
@@ -1071,7 +1077,7 @@ def main() -> None:
 
     verified, email, user = render_auth_panel()
     if not verified:
-        st.markdown("<p class='small-muted'>Sign in once to unlock BA report generation and saved report history.</p>", unsafe_allow_html=True)
+        st.markdown("<p class='small-muted'>No login required — free during beta.</p>", unsafe_allow_html=True)
         render_footer()
         return
 
@@ -1116,7 +1122,7 @@ def main() -> None:
         clear_clicked = st.button("Clear", use_container_width=True)
 
     if not verified:
-        st.info("Sign in above to enable report generation. You can still paste requirements while you wait for the verification code.")
+        st.info("No login required — free during beta. You can paste requirements and generate a report.")
 
     if clear_clicked:
         st.session_state["requirements_area"] = ""

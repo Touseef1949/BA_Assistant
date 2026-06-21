@@ -261,7 +261,8 @@ def test_sidebar_config_not_signed_in(monkeypatch):
         result = ba_app.sidebar_config("", None)
 
     assert isinstance(result, ba_app.AppConfig)
-    assert any("Not signed in" in m for m in fake._markdowns)
+    # In beta mode, no "Not signed in" message; sign-in helper is suppressed
+    assert any("Sign in" not in m for m in fake._markdowns)
 
 
 def test_sidebar_config_deep_team_toggle(monkeypatch):
@@ -347,7 +348,15 @@ def test_main_clear_button(monkeypatch):
 
 
 def test_run_paid_gate_no_email(monkeypatch):
-    """run_paid_gate with empty email returns False."""
+    """run_paid_gate with empty email returns False when auth is required."""
+    import payment
+    if not getattr(payment, "REQUIRE_AUTH", True):
+        # In beta mode, gate always passes even with empty email
+        fake = FakeSt()
+        monkeypatch.setattr(ba_app, "st", fake)
+        result = ba_app.run_paid_gate("", consume_usage=True)
+        assert result is True  # Beta mode: always allowed
+        return
     fake = FakeSt()
     monkeypatch.setattr(ba_app, "st", fake)
     result = ba_app.run_paid_gate("", consume_usage=True)
@@ -365,7 +374,8 @@ def test_run_paid_gate_allowed(monkeypatch):
 
 
 def test_run_paid_gate_blocked(monkeypatch):
-    """run_paid_gate when blocked."""
+    """run_paid_gate when blocked (requires auth mode)."""
+    monkeypatch.setattr(ba_app, "REQUIRE_AUTH", True)  # Force auth mode for this test
     fake = FakeSt()
     monkeypatch.setattr(ba_app, "st", fake)
     monkeypatch.setattr(ba_app, "gate_analysis", lambda email, consume_usage=True: (False, "Blocked", {}))
