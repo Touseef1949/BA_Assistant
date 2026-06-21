@@ -135,6 +135,8 @@ def test_event_content_stream_to_markdown_and_fallbacks(monkeypatch):
 
 
 def test_parse_questions_truncate_reset_interactive_and_run_paid_gate(monkeypatch):
+    # Pin REQUIRE_AUTH to True so auth-path tests are deterministic
+    monkeypatch.setattr(app, "REQUIRE_AUTH", True)
     monkeypatch.setitem(app.st.session_state, "interactive_stage", "questions")
     monkeypatch.setitem(app.st.session_state, "interactive_questions", ["Q1"])
     monkeypatch.setitem(app.st.session_state, "interactive_answers", {"Q1": "A1"})

@@ -43,7 +43,7 @@ def _is_local_dev() -> bool:
 
 
 FREE_USAGE_LIMIT = 2
-REQUIRE_AUTH = False
+REQUIRE_AUTH = os.getenv("REQUIRE_AUTH", "").strip().lower() in ("1", "true", "yes")  # False = open beta (default)
 PAID_USAGE_LIMIT = 10_000
 USERS_TABLE = "users"
 OTP_TTL_MINUTES = 10
