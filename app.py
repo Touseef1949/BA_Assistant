@@ -1010,6 +1010,19 @@ def reset_interactive() -> None:
     st.session_state["interactive_answers"] = {}
 
 
+def clear_inputs_callback() -> None:
+    """Reset all input state — runs BEFORE widget rendering (no st.rerun needed).
+
+    Streamlit guarantees that on_click callbacks execute before the script
+    renders any widgets, so we can safely modify key-bound session state here
+    without hitting StreamlitAPIException.
+    """
+    st.session_state["requirements_area"] = ""
+    st.session_state["last_result"] = ""
+    st.session_state["last_mermaid"] = ""
+    reset_interactive()
+
+
 ROTATING_WIT = [
     "Good requirements analysis takes time — we're structuring your scope, stories, and risks.",
     "The best BAs ask the right questions before writing anything. Almost there.",
@@ -1387,17 +1400,7 @@ def main() -> None:
             disabled=(not verified or config.analysis_type == "Interactive (Q&A)"),
         )
     with col_clear:
-        clear_clicked = st.button("Clear", use_container_width=True)
-
-    if not verified:
-        st.info("No login required — free during beta. You can paste requirements and generate a report.")
-
-    if clear_clicked:
-        st.session_state["requirements_area"] = ""
-        st.session_state["last_result"] = ""
-        st.session_state["last_mermaid"] = ""
-        reset_interactive()
-        st.rerun()
+        st.button("Clear", key="clear_btn", use_container_width=True, on_click=clear_inputs_callback)
 
     if config.analysis_type == "Interactive (Q&A)":
         render_interactive_flow(config, email, requirements_text, flow_deps)
@@ -1449,7 +1452,7 @@ def main() -> None:
         render_downloads(config, result)
 
         with st.expander("Diagram", expanded=False):
-            diagram_clicked = st.button("Generate or refresh diagram", use_container_width=True)
+            diagram_clicked = st.button("Generate or refresh diagram", key="diagram_btn", use_container_width=True)
             if diagram_clicked:
                 if not requirements_text.strip():
                     st.warning("Add requirements before generating a diagram.")

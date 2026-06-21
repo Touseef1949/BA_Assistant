@@ -270,11 +270,20 @@ def test_upload_zone_label_renders():
     ), "Upload zone CSS class missing"
 
 
-def test_clear_button_present():
-    """Clear button renders alongside Generate button."""
+def test_clear_button_clears_state():
+    """Clear button callback resets requirements_area, last_result, and last_mermaid."""
     at = run_app_authenticated()
-    buttons = [b.label for b in at.button]
-    assert "Clear" in buttons, "Clear button missing"
+    # Verify initial state has content
+    initial = at.session_state["requirements_area"]
+    assert len(initial) > 0, "Requirements area should have default content"
+
+    # Click Clear via callback — runs BEFORE widget rendering
+    at.button(key="clear_btn").click().run(timeout=15)
+
+    # Post-clear verification
+    assert at.session_state["requirements_area"] == "", (
+        "requirements_area should be empty after clear"
+    )
 
 
 def test_generate_button_enabled_for_standard():
@@ -641,3 +650,64 @@ def test_sidebar_brand_card_markup():
     assert any(
         "sidebar-brand" in t for t in sidebar_md
     ), "Sidebar brand card CSS class missing"
+
+
+# ---------------------------------------------------------------------------
+# 13. Mock-based: Diagram generation + analysis gate paths
+# ---------------------------------------------------------------------------
+
+from unittest.mock import MagicMock, patch
+
+
+def test_diagram_generation_with_mock():
+    """Click diagram button → mocked analyzer → last_mermaid populated.
+
+    Covers lines 1457-1466: the diagram_clicked branch that calls DeepSeek
+    via RequirementAnalyzer.generate_mermaid().
+
+    CRITICAL: Must patch core.analyzer.RequirementAnalyzer BEFORE AppTest.from_file()
+    loads the app module, and use patcher.start()/stop() so the mock persists
+    across Streamlit's internal reruns.
+    """
+    # Patch the source module BEFORE AppTest loads app.py
+    patcher = patch("core.analyzer.RequirementAnalyzer")
+    mock_cls = patcher.start()
+    mock_inst = MagicMock()
+    mock_inst.generate_mermaid.return_value = "graph TD\n    Login --> Dashboard"
+    mock_cls.return_value = mock_inst
+
+    try:
+        # Override conftest's REQUIRE_AUTH=true to allow local-dev gate bypass
+        import sys as _sys
+        _sys.modules.pop("payment", None)
+        _sys.modules.pop("app", None)
+        import os as _os
+        _os.environ["REQUIRE_AUTH"] = "false"
+        _os.environ["BA_ASSISTANT_LOCAL_DEV"] = "1"
+
+        at = AppTest.from_file(str(APP_PATH))
+        _seed_auth(at)
+        at.session_state["last_result"] = "# Test Report\nsome text"
+        at.session_state["last_mermaid"] = ""
+        at.run(timeout=15)
+
+        # Verify diagram button exists
+        assert any(
+            "Generate or refresh diagram" in b.label for b in at.button
+        ), "Diagram button missing"
+
+        # Click diagram button
+        at.button(key="diagram_btn").click().run(timeout=15)
+
+        # Verify the mock was called
+        assert mock_cls.call_count >= 1, (
+            f"Expected RequirementAnalyzer to be called, got {mock_cls.call_count}"
+        )
+        assert mock_inst.generate_mermaid.call_count >= 1, (
+            "Expected generate_mermaid to be called"
+        )
+        assert "graph TD" in at.session_state["last_mermaid"], (
+            "last_mermaid should contain mocked diagram output"
+        )
+    finally:
+        patcher.stop()
