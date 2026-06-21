@@ -564,14 +564,239 @@ p { text-wrap: pretty; }
 .recent-analysis-item strong { color: var(--text) !important; font-size: 0.88rem; display: block; }
 .recent-analysis-item span { color: var(--muted) !important; font-size: 0.76rem; }
 
-/* ── Mobile ── */
-@media (max-width: 640px) {
-  .block-container { padding-top: 1.9rem; padding-left: 0.8rem; padding-right: 0.8rem; }
-  .hero-title { font-size: 1.55rem; }
-  .hero-subtitle { font-size: 0.94rem; }
-  .hero-card { padding: 1.2rem 1rem; }
-  [data-testid="column"] { width: 100% !important; flex: 1 1 100% !important; }
-  .sample-report-grid { grid-template-columns: 1fr; }
+/* ============================================
+   MOBILE UX OVERHAUL — BA Assistant
+   Overlay drawer, scrim, 14px font floor, 44px tap targets
+   Mirrors Stock Research Assistant pattern
+   ============================================ */
+
+/* ── 1. SIDEBAR: FULL OVERLAY DRAWER ── */
+@media (max-width: 768px) {
+  [data-testid="stSidebar"] {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important; bottom: 0 !important;
+    height: 100dvh !important;
+    width: 85vw !important;
+    max-width: 320px !important;
+    min-width: 280px !important;
+    z-index: 9999 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: none !important;
+  }
+  [data-testid="stSidebar"][aria-expanded="true"] {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* Kill the collapse-control rail sliver */
+  [data-testid="stSidebar"] > div:first-child { width: 100% !important; }
+
+  /* Scrim / backdrop behind sidebar */
+  .stApp::after {
+    content: "" !important; display: block !important;
+    position: fixed !important; inset: 0 !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 9998 !important;
+    opacity: 0 !important; visibility: hidden !important;
+    transition: opacity 0.3s ease, visibility 0.3s ease !important;
+    pointer-events: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  .stApp:has([data-testid="stSidebar"][aria-expanded="true"])::after {
+    opacity: 1 !important; visibility: visible !important;
+    pointer-events: auto !important; cursor: pointer !important;
+  }
+
+  /* Enlarge the close button inside sidebar */
+  [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarCollapseButton"] {
+    position: absolute !important; top: 8px !important; right: 8px !important;
+    z-index: 10001 !important;
+  }
+  [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarCollapseButton"] button {
+    width: 48px !important; height: 48px !important; min-height: 48px !important;
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    backdrop-filter: blur(8px) !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    transition: background 0.2s ease !important;
+  }
+  [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarCollapseButton"] button:hover,
+  [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarCollapseButton"] button:active {
+    background: rgba(0, 0, 0, 0.1) !important;
+  }
+  [data-testid="stSidebar"][aria-expanded="true"] [data-testid="stSidebarCollapseButton"] button svg {
+    width: 24px !important; height: 24px !important;
+  }
+
+  /* Sidebar expand button — visible FAB when sidebar is closed */
+  [data-testid="stExpandSidebarButton"] {
+    position: fixed !important; top: 0.75rem !important; left: 0.75rem !important;
+    z-index: 10000 !important;
+    width: 44px !important; height: 44px !important;
+    min-height: 44px !important; min-width: 44px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border, #E8E8E8) !important;
+    background: var(--bg, #FFFFFF) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+  [data-testid="stExpandSidebarButton"] svg { width: 22px !important; height: 22px !important; }
+
+  /* ── 2. MAIN CONTENT: FULL WIDTH, 16px PADDING ── */
+  [data-testid="stAppViewContainer"],
+  [data-testid="stAppViewContainer"] .block-container,
+  [data-testid="stAppViewContainer"] > section {
+    margin-left: 0 !important; padding-left: 0 !important;
+    max-width: 100% !important; width: 100% !important;
+  }
+  [data-testid="stAppViewContainer"] .block-container {
+    padding: 1rem 1rem 4rem 1rem !important;
+    max-width: 100% !important; box-sizing: border-box !important;
+  }
+  [data-testid="stAppViewContainer"] > section { padding-top: 0.5rem !important; }
+  [data-testid="stVerticalBlock"] { gap: 0.75rem !important; }
+
+  /* ── 3. FONT SIZE FLOOR (14px minimum) ── */
+  [data-testid="stAppViewContainer"] .block-container p,
+  [data-testid="stAppViewContainer"] .block-container span,
+  [data-testid="stAppViewContainer"] .block-container label,
+  [data-testid="stAppViewContainer"] .block-container [data-testid="stWidgetLabel"],
+  [data-testid="stAppViewContainer"] .block-container [data-testid="stWidgetLabel"] label,
+  [data-testid="stAppViewContainer"] .block-container [data-testid="stMarkdown"] p,
+  [data-testid="stAppViewContainer"] .block-container [data-testid="stMarkdown"] span,
+  [data-testid="stAppViewContainer"] .block-container small,
+  [data-testid="stAppViewContainer"] .block-container [data-testid="stCaptionContainer"],
+  [data-testid="stAppViewContainer"] .block-container [data-testid="stCaptionContainer"] p {
+    font-size: 0.875rem !important; line-height: 1.4 !important;
+  }
+
+  /* Headings — mobile-appropriate sizes */
+  [data-testid="stAppViewContainer"] h1 { font-size: 1.5rem !important; }
+  [data-testid="stAppViewContainer"] h2 { font-size: 1.25rem !important; }
+  [data-testid="stAppViewContainer"] h3 { font-size: 1.125rem !important; }
+
+  /* Sidebar labels */
+  [data-testid="stSidebar"] [data-testid="stMarkdown"] span,
+  [data-testid="stSidebar"] [data-testid="stMarkdown"] p,
+  [data-testid="stSidebar"] label,
+  [data-testid="stSidebar"] [data-testid="stWidgetLabel"] { font-size: 0.875rem !important; }
+
+  /* ── 4. TAP TARGETS (44px minimum) ── */
+  [data-testid="stAppViewContainer"] .block-container a,
+  [data-testid="stAppViewContainer"] .block-container button,
+  [data-testid="stAppViewContainer"] .block-container [role="button"],
+  [data-testid="stAppViewContainer"] .block-container select,
+  [data-testid="stAppViewContainer"] .block-container input,
+  [data-testid="stAppViewContainer"] .block-container [data-testid="baseButton-secondary"],
+  [data-testid="stAppViewContainer"] .block-container [data-testid="baseButton-primary"] {
+    min-height: 44px !important; min-width: 44px !important;
+    display: inline-flex !important; align-items: center !important;
+    padding: 0.5rem 0.75rem !important; box-sizing: border-box !important;
+  }
+
+  /* Heading anchor links */
+  [data-testid="stAppViewContainer"] .block-container a[href^="#"],
+  [data-testid="stAppViewContainer"] .block-container .header-anchor {
+    min-height: 44px !important; min-width: 44px !important;
+    display: inline-flex !important; align-items: center !important;
+    justify-content: center !important;
+    margin: -12px !important; padding: 12px !important;
+  }
+
+  /* Tab buttons */
+  [data-testid="stTabs"] [role="tablist"] { flex-wrap: wrap !important; }
+  [data-testid="stTabs"] [role="tab"] {
+    flex: 1 1 auto !important; font-size: 0.875rem !important;
+    min-height: 44px !important; padding: 0.5rem 0.75rem !important;
+  }
+
+  /* ── 5. COLUMNS → STACK ── */
+  [data-testid="stHorizontalBlock"], .stHorizontalBlock {
+    flex-direction: column !important; flex-wrap: nowrap !important; gap: 0.75rem !important;
+  }
+  [data-testid="stHorizontalBlock"] > [data-testid="column"],
+  [data-testid="stHorizontalBlock"] > [data-testid="stVerticalBlock"],
+  [data-testid="stHorizontalBlock"] > div,
+  .stHorizontalBlock > div {
+    flex: 0 0 100% !important; width: 100% !important;
+    max-width: 100% !important; min-width: 0 !important;
+  }
+
+  /* ── 6. HERO / PAGE HEADER ── */
+  .hero-card { padding: 1.2rem 1rem !important; margin-bottom: 0.75rem !important; }
+  .hero-title { font-size: 1.5rem !important; line-height: 1.15 !important; }
+  .hero-subtitle { font-size: 0.92rem !important; max-width: 100% !important; }
+  .hero-chip-row { gap: 0.4rem !important; }
+  .hero-chip-row span { font-size: 0.875rem !important; padding: 0.25rem 0.5rem !important; }
+  .hero-workflow-row { gap: 0.4rem !important; }
+  .hero-workflow-step { font-size: 0.8rem !important; padding: 0.4rem 0.6rem !important; }
+
+  /* ── 7. AUTH SHELL ── */
+  .auth-shell { padding: 0.8rem !important; margin-bottom: 0.75rem !important; }
+  .auth-badge { padding: 0.35rem 0.75rem !important; font-size: 0.875rem !important; }
+
+  /* ── 8. UPLOAD ZONE ── */
+  .upload-zone { padding: 0.8rem !important; }
+  .upload-zone-label { font-size: 0.9rem !important; }
+  .upload-zone-hint { font-size: 0.8rem !important; }
+
+  /* ── 9. SAMPLE REPORT PREVIEW ── */
+  .sample-report-preview { padding: 1rem !important; }
+  .sample-report-head { flex-direction: column !important; gap: 1rem !important; }
+  .sample-report-head h3 { font-size: 1.1rem !important; }
+  .sample-report-grid { grid-template-columns: 1fr !important; gap: 0.6rem !important; }
+
+  /* ── 10. METRIC / SOFT CARDS ── */
+  .metric-card, .soft-card { padding: 0.8rem !important; }
+
+  /* ── 11. DATA TABLES / CODE ── */
+  [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important; border-radius: 8px !important;
+  }
+  [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+    white-space: nowrap !important; font-size: 0.8125rem !important;
+    padding: 0.5rem 0.625rem !important;
+  }
+  [data-testid="stCodeBlock"] {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    max-width: 100% !important;
+  }
+
+  /* ── 12. EXPANDERS ── */
+  [data-testid="stExpander"] summary {
+    min-height: 48px !important; padding: 0.75rem 1rem !important;
+    font-size: 0.9375rem !important;
+    display: flex !important; align-items: center !important;
+  }
+
+  /* ── 13. SIDEBAR BRAND CARD ── */
+  .sidebar-brand { padding: 0.8rem !important; margin: 0.35rem 0 0.75rem !important; }
+  .sidebar-help-card { padding: 0.6rem !important; margin-top: 0.6rem !important; }
+
+  /* ── 14. FOOTER ── */
+  .footer { font-size: 0.8125rem !important; padding: 0.75rem 1rem !important; }
+}
+
+/* ── EXTRA-TIGHT SCREENS (<=380px, iPhone SE) ── */
+@media (max-width: 380px) {
+  [data-testid="stAppViewContainer"] .block-container {
+    padding: 0.75rem 0.75rem 4rem 0.75rem !important;
+  }
+  [data-testid="stSidebar"] { width: 90vw !important; }
+  [data-testid="stAppViewContainer"] h1 { font-size: 1.375rem !important; }
+  [data-testid="stAppViewContainer"] h2 { font-size: 1.125rem !important; }
+  .hero-card { padding: 1rem 0.75rem !important; }
+  .hero-title { font-size: 1.3rem !important; }
+  .sample-report-grid { grid-template-columns: 1fr !important; }
+
+  /* Stack tab buttons vertically on very small screens */
+  [data-baseweb="tab-list"] { flex-direction: column !important; }
+  [data-baseweb="tab-list"] button { width: 100% !important; }
 }
 </style>
 """
@@ -1066,10 +1291,53 @@ def render_downloads(config: AppConfig, result: str) -> None:
             st.caption("PDF unavailable — download Markdown instead")
 
 
+def _inject_mobile_sidebar_close_js() -> None:
+    """JS to close sidebar when tapping outside it (on the scrim)."""
+    try:
+        components.html(
+            """
+<script>
+(function() {
+  function setupScrimClose() {
+    const app = document.querySelector('.stApp') || document.querySelector('[data-testid="stAppViewContainer"]');
+    const sidebar = document.querySelector('[data-testid="stSidebar"]');
+    if (!app || !sidebar) {
+      setTimeout(setupScrimClose, 500);
+      return;
+    }
+    app.addEventListener('click', function(e) {
+      if (sidebar.getAttribute('aria-expanded') !== 'true') return;
+      const sidebarRect = sidebar.getBoundingClientRect();
+      if (e.clientX > sidebarRect.right || e.clientX < sidebarRect.left) {
+        const collapseBtn = sidebar.querySelector(
+          '[data-testid="stSidebarCollapseButton"] button'
+        );
+        if (collapseBtn) collapseBtn.click();
+      }
+    }, { capture: true });
+  }
+  setTimeout(setupScrimClose, 1000);
+  if (document.body) {
+    const observer = new MutationObserver(function() {
+      clearTimeout(window._scrimTimer);
+      window._scrimTimer = setTimeout(setupScrimClose, 500);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+})();
+</script>
+""",
+            height=0,
+        )
+    except Exception:
+        pass
+
+
 def main() -> None:
     bootstrap_environment()
     init_session_state()
     st.markdown(CARD_CSS, unsafe_allow_html=True)
+    _inject_mobile_sidebar_close_js()
     render_header()
 
     if PAYMENT_IMPORT_ERROR is not None:
