@@ -33,7 +33,15 @@ def _history_path(email: str, safe_secret_fn: SafeSecretFn) -> str:
         if os.environ.get("BA_ASSISTANT_LOCAL_DEV", "").strip().lower() in {"1", "true", "yes"}:
             salt = "local-history"
         else:
-            raise RuntimeError("BA_ASSISTANT_AUTH_SECRET must be set before persisting report history.")
+            # Beta mode: use a default salt when auth secret isn't configured
+            try:
+                from payment import REQUIRE_AUTH
+                if not REQUIRE_AUTH:
+                    salt = "beta-history"
+            except Exception:
+                pass
+            if not salt:
+                raise RuntimeError("BA_ASSISTANT_AUTH_SECRET must be set before persisting report history.")
     digest = hashlib.sha256(f"{salt}:{email}".encode("utf-8")).hexdigest()
     return os.path.join(_history_dir(), f"{digest}.json")
 
