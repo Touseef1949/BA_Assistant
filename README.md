@@ -1,3 +1,15 @@
+---
+title: BA Assistant
+emoji: 📋
+colorFrom: green
+colorTo: gray
+sdk: streamlit
+sdk_version: "1.42.0"
+python_version: "3.11"
+app_file: app.py
+pinned: false
+---
+
 # BA Assistant
 
 BA Assistant turns rough requirements into a structured BA/Product Owner report: scope, stakeholders, assumptions, functional and non-functional requirements, user stories, risks, architecture notes, roadmap, and Mermaid diagrams.
