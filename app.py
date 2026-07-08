@@ -234,6 +234,9 @@ html, body,
 [data-testid="stApp"],
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"],
+[data-testid="stSidebar"],
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"],
 section.main,
 .main {
   scrollbar-gutter: stable !important;
