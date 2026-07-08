@@ -225,9 +225,20 @@ CARD_CSS = """
 }
 
 * { font-family: var(--font-sans) !important; }
-/* Reserve the vertical scrollbar gutter so the centered layout doesn't
-   jump left/right as streamed content changes page height (UI "shake"). */
-html { overflow-y: scroll; scrollbar-gutter: stable; }
+/* Reserve the vertical scrollbar gutter on every possible scroll container so
+   the whole layout doesn't jump left/right when the scrollbar appears/disappears
+   as streamed content changes page height (the UI "shake"). Streamlit scrolls on
+   its inner containers, not <html>, so target all of them. */
+html, body,
+.stApp,
+[data-testid="stApp"],
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section.main,
+.main {
+  scrollbar-gutter: stable !important;
+  overflow-y: scroll !important;
+}
 
 .stApp { background: var(--bg); color: var(--text); }
 /* Completely hide Streamlit header bar */
