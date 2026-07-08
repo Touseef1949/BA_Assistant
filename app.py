@@ -225,7 +225,9 @@ CARD_CSS = """
 }
 
 * { font-family: var(--font-sans) !important; }
-html { scroll-behavior: smooth; }
+/* Reserve the vertical scrollbar gutter so the centered layout doesn't
+   jump left/right as streamed content changes page height (UI "shake"). */
+html { overflow-y: scroll; scrollbar-gutter: stable; }
 
 .stApp { background: var(--bg); color: var(--text); }
 /* Completely hide Streamlit header bar */
@@ -872,14 +874,21 @@ def event_content(event: Any) -> str:
 def stream_to_markdown(run_callable: Callable[[bool], Any], placeholder: Any) -> str:
     """Stream Agno output to a Streamlit markdown placeholder with non-stream fallback."""
     output = ""
+    last_render = 0.0
     try:
         stream = run_callable(True)
         for event in stream:
             chunk = event_content(event)
             if chunk:
                 output += chunk
-                placeholder.markdown(output)
+                # Repaint at most ~10 fps instead of once per token; frequent
+                # reflow is what makes streaming feel jittery and is slow.
+                now = time.monotonic()
+                if now - last_render > 0.1:
+                    placeholder.markdown(output)
+                    last_render = now
         if output.strip():
+            placeholder.markdown(output.strip())  # final flush
             return output.strip()
     except TypeError:
         # Some older providers do not support stream=True consistently.
