@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-07-18
+
+### Fixed
+
+- native Hugging Face Spaces installation now receives the exact pinned runtime
+  dependency set directly through `requirements.txt`
+
 ## [0.1.0] - 2026-07-18
 
 ### Added
