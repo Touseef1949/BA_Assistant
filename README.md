@@ -71,9 +71,11 @@ streamlit run app.py
 
 `requirements.in` declares compatible runtime dependencies;
 `requirements.lock` and `requirements-dev.lock` capture exact environments.
-`requirements.txt` makes the Hugging Face build consume the runtime lock.
-Regenerate with `uv pip compile requirements.in -o requirements.lock`
-and `uv pip compile requirements-dev.in -o requirements-dev.lock`.
+`requirements.txt` mirrors the runtime lock because native Hugging Face Spaces
+mounts that file independently during its build. Regenerate the locks with
+`uv pip compile requirements.in -o requirements.lock` and
+`uv pip compile requirements-dev.in -o requirements-dev.lock`, then copy the
+runtime lock to `requirements.txt` before committing.
 
 ## Development quality gate
 
