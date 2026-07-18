@@ -25,23 +25,15 @@ Copy `.streamlit/secrets.toml.example` to Streamlit Cloud secrets and set:
 
 ## Deploy Checks
 
-Run before every deploy:
+Run the local quality gate before every deploy; it matches CI:
 
 ```bash
-/usr/local/bin/python3 -m py_compile app.py payment.py preflight.py
-pytest -q
-python3 preflight.py --quick
+./scripts/quality.sh
 ```
 
-`pytest -q` includes the configured 35% Phase 1 coverage gate. `preflight.py --quick` skips live model calls. Run full preflight only in an environment with valid provider keys.
+`quality.sh` checks Ruff formatting and linting for the `core`/`services`/`scripts` boundaries, runs targeted mypy checks, compiles `app.py payment.py preflight.py`, runs the coverage-gated test suite, and runs `preflight.py --quick`. The suite enforces the configured 90% coverage gate, and `preflight.py --quick` skips live model calls. Run full preflight only in an environment with valid provider keys.
 
-Use the repo-local pre-push equivalent before pushing:
-
-```bash
-PYTHON_BIN=/usr/local/bin/python3 ./scripts/pre_push_check.sh
-```
-
-CI compiles the core modules, runs the same coverage-gated test suite, and runs Gitleaks with `.gitleaks.toml`.
+CI runs the same `./scripts/quality.sh` in a least-privilege `quality` job and runs Gitleaks with `.gitleaks.toml` in a separate `security` job.
 
 ## Auth And Usage
 
