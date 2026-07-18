@@ -1,13 +1,2 @@
-streamlit>=1.32.0
-agno>=1.5.0
-python-dotenv
-openai
-google-genai
-supabase
-requests
-fpdf2
-pdfplumber
-Pillow
-pytest
-pytest-cov
-locust
+# Hugging Face Spaces installs this file. Keep deployment on the committed lock.
+-r requirements.lock

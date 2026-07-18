@@ -8,98 +8,124 @@ sdk_version: "1.42.0"
 python_version: "3.11"
 app_file: app.py
 pinned: false
+license: mit
 ---
 
 # BA Assistant
 
-BA Assistant turns rough requirements into a structured BA/Product Owner report: scope, stakeholders, assumptions, functional and non-functional requirements, user stories, risks, architecture notes, roadmap, and Mermaid diagrams.
+[Live app](https://tshaik1990-ba-assistant.hf.space) ·
+[Case study](https://touseefshaik.com/apps/ba-assistant.html) ·
+[Security policy](SECURITY.md) ·
+[Changelog](CHANGELOG.md)
 
-The Streamlit app now uses a main-content workflow:
+**Maturity:** public flagship, production-oriented, version 0.1.0.
+
+BA Assistant helps Business Analysts and Product Owners turn rough requirements
+into a reviewable report containing scope, stakeholders, assumptions,
+functional and non-functional requirements, user stories, risks, architecture
+notes, roadmap, and Mermaid diagrams. It shortens the first drafting pass; the
+output still requires stakeholder and delivery-team review.
+
+## Product flow
 
 1. Sign in with email OTP.
-2. Paste or upload requirements.
-3. Click `Generate BA Report`.
-4. Export Markdown, TXT, PDF, or Mermaid.
+2. Paste requirements or upload an approved PDF/image.
+3. Generate a standard report, use Interactive Q&A, or opt into Deep Team mode.
+4. Review and export Markdown, TXT, PDF, or Mermaid.
 
-The sidebar is secondary and contains account status, usage, history, and advanced settings.
+The [public case study](https://touseefshaik.com/apps/ba-assistant.html) is the
+visual walkthrough. The sidebar is secondary and holds account status, usage,
+history, and advanced settings.
 
-## Model Policy
+## Architecture
 
-All BA text-analysis agents and coordinator paths use `deepseek-v4-flash`.
+```text
+Streamlit UI -> auth and usage gate -> RequirementAnalyzer
+             -> DeepSeek worker/coordinator models -> structured report
+Optional image upload -> explicit Gemini extraction
+PDF upload -> local pdfplumber extraction
+Report -> sanitized Mermaid + Markdown/TXT/PDF exports + per-user history
+```
 
-Optional image extraction uses Gemini only when the user explicitly uploads an image and clicks extract. PDF extraction is local through `pdfplumber`.
+Core orchestration lives in `core/`, reusable report/history/error services in
+`services/`, the UI flow in `ui/`, and deterministic coverage in `tests/`.
+Operational procedures are in [RUNBOOK.md](RUNBOOK.md).
 
-## Features
+## Supported environment
 
-- OTP-style email login through Supabase Auth.
-- Free-tier usage tracking with `analyses_used` and `analyses_limit`.
-- Standard report generation, Interactive Q&A, and advanced Deep Team mode.
-- Markdown, TXT, PDF, and Mermaid exports.
-- Per-user report history stored under salted hashed filenames.
-- Mobile-friendly main workflow with the sidebar acting as a secondary drawer.
-- Pytest pyramid foundation with smoke, unit, integration, regression, and Streamlit AppTest coverage.
-- GitHub Actions CI with compile, coverage, and secret-scan gates.
-- Structured JSONL error logging, a safe health monitor, and a Locust scaffold that only hits `/` and `/_stcore/health`.
+- Python 3.11 is the deployment and CI version; metadata permits 3.11–3.13.
+- A local virtual environment and internet access for dependency installation.
+- DeepSeek credentials for analysis. Supabase credentials are required for the
+  production authentication path.
 
-## Quick Start
+## Reproducible quick start
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.lock
 export BA_ASSISTANT_LOCAL_DEV=1
 export DEEPSEEK_API_KEY="your-key"
 streamlit run app.py
 ```
 
-For local development, OTP codes are displayed in the app after `Send code`. Production must use Supabase OTP and must not set `BA_ASSISTANT_LOCAL_DEV=1`.
+`requirements.in` declares compatible runtime dependencies;
+`requirements.lock` and `requirements-dev.lock` capture exact environments.
+`requirements.txt` makes the Hugging Face build consume the runtime lock.
+Regenerate with `uv pip compile requirements.in -o requirements.lock`
+and `uv pip compile requirements-dev.in -o requirements-dev.lock`.
 
-## Secrets
-
-Use `.streamlit/secrets.toml.example` as the template.
-
-Required for production:
-
-- `DEEPSEEK_API_KEY`
-- `SUPABASE_URL`
-- `SUPABASE_KEY`
-- `BA_ASSISTANT_AUTH_SECRET`
-
-Optional:
-
-- `RAZORPAY_KEY_ID`
-- `RAZORPAY_KEY_SECRET`
-- `RAZORPAY_WEBHOOK_SECRET`
-- `GOOGLE_API_KEY` for image extraction
-
-## Validation
+## Development quality gate
 
 ```bash
-/usr/local/bin/python3 -m py_compile app.py payment.py preflight.py
-pytest -q
-python3 preflight.py --quick
+python -m pip install -r requirements-dev.lock
+./scripts/quality.sh
 ```
 
-`pytest -q` enforces the Phase 1 coverage gate through `pytest-cov`.
-
-For the repo-local pre-push equivalent:
-
-```bash
-PYTHON_BIN=/usr/local/bin/python3 ./scripts/pre_push_check.sh
-```
-
-To monitor a local or deployed Streamlit app without triggering model usage:
+The command checks Ruff formatting and linting for core/service boundaries,
+targeted mypy checks, Python compilation, the coverage-gated deterministic test
+suite, and offline preflight validation. CI runs the same command. Safe health
+and load checks never invoke a model:
 
 ```bash
-python3 scripts/health_monitor.py --base-url http://localhost:8501 --include-root
-```
-
-To run the safe load scaffold:
-
-```bash
+python scripts/health_monitor.py --base-url http://localhost:8501 --include-root
 locust -f tests/load/locustfile.py --host http://localhost:8501
 ```
 
-The Locust file only checks `/` and `/_stcore/health`; do not add LLM-consuming flows to load tests.
+## Model, data, and privacy boundaries
 
-See `RUNBOOK.md` for production operations, incident checks, and deployment notes.
+- BA text-analysis paths use `deepseek-v4-flash`.
+- Gemini is used only for an explicitly requested image extraction.
+- PDF extraction is local, but extracted text can be sent to DeepSeek when the
+  user generates a report.
+- Report history uses salted hashed filenames; the hosting filesystem is not a
+  general-purpose records store.
+- Do not submit credentials, regulated personal data, or customer content that
+  is not approved for the configured providers.
+
+See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for controls and residual risk.
+
+## Secrets
+
+Copy `.streamlit/secrets.toml.example` locally. Production requires
+`DEEPSEEK_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`, and
+`BA_ASSISTANT_AUTH_SECRET`. Razorpay credentials and `GOOGLE_API_KEY` are
+optional for their corresponding features. Never commit real secret files.
+
+## Known limitations
+
+- Generated analysis can be incomplete or wrong and is not delivery approval.
+- Provider availability, rate limits, and model changes affect latency/output.
+- Image extraction sends the uploaded image to the configured Gemini provider.
+- Local-dev OTP display must never be enabled in production.
+- The lightweight health/load paths prove availability, not model quality.
+
+## Release and deployment
+
+Pull requests must pass the `quality` and `security` jobs. A stable milestone is
+tagged with Semantic Versioning and documented in [CHANGELOG.md](CHANGELOG.md).
+The tagged GitHub revision is then synchronized to the Hugging Face Space and
+verified through `/_stcore/health` and the public app journey.
+
+Contributions are welcome through [CONTRIBUTING.md](CONTRIBUTING.md). This
+project is licensed under the [MIT License](LICENSE).

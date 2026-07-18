@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import time
 from typing import Dict, Tuple
 from urllib.error import HTTPError, URLError
@@ -40,7 +39,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Check BA Assistant safe health endpoints.")
     parser.add_argument("--base-url", default="http://localhost:8501", help="Base app URL.")
     parser.add_argument("--timeout", type=float, default=5.0, help="Request timeout in seconds.")
-    parser.add_argument("--include-root", action="store_true", help="Also check / without triggering analysis.")
+    parser.add_argument(
+        "--include-root", action="store_true", help="Also check / without triggering analysis."
+    )
     args = parser.parse_args()
 
     base = args.base_url.rstrip("/") + "/"
