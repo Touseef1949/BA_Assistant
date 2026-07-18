@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. The project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-07-18
+
+### Fixed
+
+- native Space SDK version now matches the exactly pinned Streamlit runtime,
+  avoiding conflicting installer requirements during the build
+
 ## [0.1.1] - 2026-07-18
 
 ### Fixed
