@@ -89,7 +89,9 @@ def make_vision_model() -> Any:
     if Gemini is not None:
         return Gemini(id="gemini-3.5-flash", api_key=google_key)
     if OpenAIChat is None:
-        raise RuntimeError("Neither agno.models.google.Gemini nor OpenAIChat fallback is available.")
+        raise RuntimeError(
+            "Neither agno.models.google.Gemini nor OpenAIChat fallback is available."
+        )
     return OpenAIChat(
         id="gemini-3.5-flash",
         api_key=google_key,
@@ -123,7 +125,12 @@ def response_content(response: Any) -> str:
 
 
 class RequirementAnalyzer:
-    def __init__(self, model_id: str = TEXT_ANALYSIS_MODEL_ID, show_member_responses: bool = False, enable_vision: bool = False):
+    def __init__(
+        self,
+        model_id: str = TEXT_ANALYSIS_MODEL_ID,
+        show_member_responses: bool = False,
+        enable_vision: bool = False,
+    ):
         self.model_id = model_id
         self.show_member_responses = show_member_responses
         self.enable_vision = enable_vision
@@ -237,7 +244,13 @@ class RequirementAnalyzer:
         team_kwargs: Dict[str, Any] = {
             "name": "Requirement Analysis Team",
             "model": make_coordinator_model(),
-            "members": [self.ba_agent, self.product_agent, self.architect_agent, self.diagram_agent, self.risk_qa_agent],
+            "members": [
+                self.ba_agent,
+                self.product_agent,
+                self.architect_agent,
+                self.diagram_agent,
+                self.risk_qa_agent,
+            ],
             "instructions": [
                 PROMPT_INJECTION_GUARD,
                 "Coordinate the members to produce one consolidated BA/Product Owner report.",
@@ -253,11 +266,15 @@ class RequirementAnalyzer:
             team_kwargs["retries"] = 0
         if supports_parameter(Team, "show_members_responses"):
             team_kwargs["show_members_responses"] = self.show_member_responses
-        elif supports_parameter(Team, "show_members_responses"):  # pragma: no cover — identical condition, unreachable
+        elif supports_parameter(
+            Team, "show_members_responses"
+        ):  # pragma: no cover — identical condition, unreachable
             team_kwargs["show_members_responses"] = self.show_member_responses
         self.team = Team(**team_kwargs)
 
-    def compose_prompt(self, requirements_text: str, project_name: str, analysis_type: str, qa_transcript: str = "") -> str:
+    def compose_prompt(
+        self, requirements_text: str, project_name: str, analysis_type: str, qa_transcript: str = ""
+    ) -> str:
         lens = ""
         if analysis_type == "Deep Team":
             lens = "Use an enterprise implementation lens: governance, scalability, operating model, data controls, security, monitoring, RACI, vendor governance, migration, and rollout strategy."
@@ -268,7 +285,7 @@ class RequirementAnalyzer:
 
         qa_block = f"\n\nClarifying Q&A transcript:\n{qa_transcript}\n" if qa_transcript else ""
         return f"""
-Project name: {project_name or 'Untitled Project'}
+Project name: {project_name or "Untitled Project"}
 Analysis type: {analysis_type}
 
 {lens}
@@ -287,7 +304,9 @@ Output requirements:
 - Include at least one Mermaid diagram code block when a process or architecture can be inferred.
 """.strip()
 
-    def run_analysis(self, requirements_text: str, project_name: str, analysis_type: str, stream: bool = False) -> Any:
+    def run_analysis(
+        self, requirements_text: str, project_name: str, analysis_type: str, stream: bool = False
+    ) -> Any:
         prompt = self.compose_prompt(requirements_text, project_name, analysis_type)
         # Standard: single fast agent (30-90s, avoids Streamlit Cloud timeout)
         # Deep Team: full 5-agent Team (3-5 min, for thorough analysis)
@@ -298,14 +317,20 @@ Output requirements:
             kwargs["show_member_responses"] = self.show_member_responses
         return self.team.run(prompt, **kwargs)
 
-    def run_interactive(self, requirements_text: str, project_name: str, qa_transcript: str, stream: bool = False) -> Any:
-        prompt = self.compose_prompt(requirements_text, project_name, "Interactive (Q&A)", qa_transcript)
+    def run_interactive(
+        self, requirements_text: str, project_name: str, qa_transcript: str, stream: bool = False
+    ) -> Any:
+        prompt = self.compose_prompt(
+            requirements_text, project_name, "Interactive (Q&A)", qa_transcript
+        )
         kwargs: Dict[str, Any] = {"stream": stream}
         if supports_parameter(self.team.run, "show_member_responses"):
             kwargs["show_member_responses"] = self.show_member_responses
         return self.team.run(prompt, **kwargs)
 
-    def run_specialized(self, requirements_text: str, project_name: str, analysis_type: str, stream: bool = False) -> Any:
+    def run_specialized(
+        self, requirements_text: str, project_name: str, analysis_type: str, stream: bool = False
+    ) -> Any:
         mapping = {
             "Quick Feature Extraction": (
                 self.product_agent,
@@ -326,7 +351,7 @@ Output requirements:
         }
         agent, instruction = mapping.get(analysis_type, mapping["Gap & Clarification"])
         prompt = f"""
-Project name: {project_name or 'Untitled Project'}
+Project name: {project_name or "Untitled Project"}
 Analysis type: {analysis_type}
 
 {PROMPT_INJECTION_GUARD}

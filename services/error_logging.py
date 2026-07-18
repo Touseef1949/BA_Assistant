@@ -14,7 +14,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 
-DEFAULT_LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs", "ba_assistant_errors.jsonl")
+DEFAULT_LOG_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "logs", "ba_assistant_errors.jsonl"
+)
 
 
 def _log_path() -> str:
@@ -27,7 +29,9 @@ def _clean_context(context: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     cleaned: Dict[str, Any] = {}
     for key, value in context.items():
         try:
-            cleaned[str(key)] = value if isinstance(value, (str, int, float, bool, type(None))) else repr(value)
+            cleaned[str(key)] = (
+                value if isinstance(value, (str, int, float, bool, type(None))) else repr(value)
+            )
         except Exception:
             cleaned[str(key)] = "<unrepresentable>"
     return cleaned
