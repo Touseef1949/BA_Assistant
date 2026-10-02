@@ -50,7 +50,7 @@ click==8.4.2
     #   uvicorn
 configargparse==1.7.5
     # via locust
-coverage==7.15.2
+coverage[toml]==7.15.2
     # via pytest-cov
 cryptography==49.0.0
     # via
@@ -90,9 +90,9 @@ geventhttpclient==2.3.9
     # via locust
 gitdb==4.0.12
     # via gitpython
-gitpython==3.1.52
+gitpython==3.1.62
     # via streamlit
-google-auth==2.55.2
+google-auth[requests]==2.55.2
     # via google-genai
 google-genai==2.12.1
     # via -r requirements.in
@@ -112,7 +112,7 @@ httpcore==1.0.9
     # via httpx
 httptools==0.8.0
     # via streamlit
-httpx==0.28.1
+httpx[http2]==0.28.1
     # via
     #   agno
     #   agnoctl
@@ -231,7 +231,7 @@ pygments==2.20.0
     # via
     #   pytest
     #   rich
-pyjwt==2.13.0
+pyjwt[crypto]==2.13.0
     # via supabase-auth
 pypdfium2==5.12.1
     # via pdfplumber
@@ -254,7 +254,7 @@ python-engineio==4.13.3
     #   python-socketio
 python-multipart==0.0.32
     # via streamlit
-python-socketio==5.16.3
+python-socketio[client]==5.16.3
     # via locust
 pyyaml==6.0.3
     # via agno
@@ -315,8 +315,6 @@ tenacity==9.1.4
     #   streamlit
 toml==0.10.2
     # via streamlit
-tomli==2.4.1
-    # via coverage
 tqdm==4.69.0
     # via openai
 typer==0.27.0
@@ -345,6 +343,8 @@ urllib3==2.7.0
     #   geventhttpclient
     #   requests
 uvicorn==0.51.0
+    # via streamlit
+watchdog==6.0.0
     # via streamlit
 websocket-client==1.9.0
     # via python-socketio
